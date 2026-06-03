@@ -3,19 +3,16 @@
 #include <Graphics/Color.hpp>
 #include <cstdio>
 #include <std_image.h>
+#include <string>
+#include <vector>
 
 class Texture final {
-    Color *m_texture;
+    std::vector<Color> m_data;
     int m_width, m_height;
-
-    Texture &operator=(Texture &) = delete;
-    Texture(Texture &) = delete;
-    Texture(Texture &&) = delete;
-    Texture &operator=(Texture &&) = delete;
 
   public:
     ~Texture();
-    Texture(FILE file);
+    Texture(const std::string& path);
     Texture(int wigth, int height);
     Texture(int wigth, int height, Color baseColor);
 

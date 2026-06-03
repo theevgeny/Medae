@@ -46,7 +46,7 @@ Mesh &Mesh::pushIndex(int index) {
     return *this;
 }
 
-double *Mesh::getRawVertices() { return (double *)m_vertices.data(); }
+float *Mesh::getRawVertices() { return (float *)m_vertices.data(); }
 int Mesh::getVerticesCount() { return m_vertices.size(); }
 int *Mesh::getRawIndices() { return m_indices.data(); }
 int Mesh::getIndicesCount() { return m_indices.size(); }

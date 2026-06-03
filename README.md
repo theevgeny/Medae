@@ -7,3 +7,5 @@ https://github.com/Dav1dde/glad
 https://github.com/g-truc/glm
 https://github.com/nothings/stb
 https://github.com/tinyobjloader/tinyobjloader
+https://github.com/gabime/spdlog
+https://github.com/samhocevar/portable-file-dialogs

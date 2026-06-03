@@ -21,6 +21,8 @@ class OpenGLRender : public IRender {
     void renderLoop(std::function<void(IRender*)> callback) override;
 
     void drawTriangle(Vector2 p1, Vector2 p2, Vector2 p3, Color c) override;
+
+    void rendMesh(Mesh& mesh) override;
 };
 
 inline IRender::~IRender() = default;

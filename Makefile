@@ -6,7 +6,7 @@ LIB_DIR:=Library
 C:=clang
 CXX:=clang++
 CXXFLAGS:=-std=c++23 -I$(INCLUDE_DIR) -I$(SRC_DIR) -Wmsvc-not-found --target=x86_64-w64-windows-gnu -Wextra -Wall -pedantic
-LIBSFLAGS:=$(LIB_DIR)/libglfw3.a -lopengl32 -lgdi32
+LIBSFLAGS:=$(LIB_DIR)/libglfw3.a -lopengl32 -lgdi32 -pthread
 
 OUT_FILE:=Binary/medae.exe
 

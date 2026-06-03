@@ -18,11 +18,11 @@ ProgramArgs::ProgramArgs(int argc, char **argv) {
     }
 }
 
-bool ProgramArgs::getFlag(const std::string& flagName) {
+bool ProgramArgs::getFlag(const std::string& flagName) const {
     return std::find(flags_m.begin(), flags_m.end(), flagName) != flags_m.end();
 }
 
-std::string ProgramArgs::getValue(const std::string& flagName) {
+std::string ProgramArgs::getValue(const std::string& flagName) const {
     auto it = flagsWithValue_m.find(flagName);
     if (it != flagsWithValue_m.cend()) {
         return it->second;

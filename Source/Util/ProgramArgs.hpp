@@ -11,6 +11,6 @@ class ProgramArgs {
   public:
     ProgramArgs(int argc, char **argv);
 
-    bool getFlag(const std::string& flagName);
-    std::string getValue(const std::string& flagName);
+    bool getFlag(const std::string& flagName) const;
+    std::string getValue(const std::string& flagName) const;
 };

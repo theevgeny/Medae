@@ -15,7 +15,7 @@ class Mesh final {
     Mesh &pushVertex(const glm::vec3 &vertex);
     Mesh &pushIndex(int index);
 
-    double *getRawVertices();
+    float *getRawVertices();
     int getVerticesCount();
     int *getRawIndices();
     int getIndicesCount();
