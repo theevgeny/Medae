@@ -22,7 +22,7 @@ unsigned int OpenGLShaderTools::addShaderProgramToOpenGL(
     int status;
     glGetProgramiv(programId, GL_LINK_STATUS, &status);
     if (status != true) {
-        GLint logLength;
+        int logLength;
         glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &logLength);
         std::string errorLog;
         if (logLength > 0) {

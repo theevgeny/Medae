@@ -1,8 +1,9 @@
-#include <Macros.hpp>
+#include <Graphics/Renders/OpenGL/OpenGLRender.hpp>
 #include <Graphics/Renders/OpenGL/OpenGLShaderTools.hpp>
+#include <Macros.hpp>
 #include <Util/CriticalError.hpp>
 #include <glm/ext/vector_float3.hpp>
-#include <Graphics/Renders/OpenGL/OpenGLRender.hpp>
+
 
 OpenGLRender::OpenGLRender() {
     glfwInit();
@@ -79,10 +80,12 @@ void OpenGLRender::deleteShaderProgramFromPool(const std::string &name) {
 
 void OpenGLRender::rendMesh(Mesh &mesh) {
     static unsigned int VAO = 0, VBO = 0, EBO = 0;
+    //NBO = 0
     if (VAO == 0) {
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
         glGenBuffers(1, &EBO);
+        //glGenBuffers(1, &NBO);
     }
 
     glBindVertexArray(VAO);
@@ -100,4 +103,54 @@ void OpenGLRender::rendMesh(Mesh &mesh) {
     glDrawElements(GL_TRIANGLES, mesh.getIndicesCount(), GL_UNSIGNED_INT,
                    nullptr);
     glBindVertexArray(0);
+}
+
+unsigned int OpenGLRender::getProgramID(const std::string &programName) const {
+    auto it = shaderProgramIds.find(programName);
+    if (it != shaderProgramIds.end()) {
+        return it->second;
+    }
+    throwCriticalError("Program not found: " + programName);
+    return 0;
+}
+
+void OpenGLRender::setUniform(const std::string &programName,
+                              const std::string &uniformName,
+                              const glm::mat4 &value) {
+    auto it = shaderProgramIds.find(programName);
+    if (it == shaderProgramIds.end())
+        return;
+
+    glUseProgram(it->second);
+    int location = glGetUniformLocation(it->second, uniformName.c_str());
+    if (location != -1) {
+        glUniformMatrix4fv(location, 1, GL_FALSE, &value[0][0]);
+    }
+}
+
+void OpenGLRender::setUniform(const std::string &programName,
+                              const std::string &uniformName,
+                              const glm::vec3 &value) {
+    auto it = shaderProgramIds.find(programName);
+    if (it == shaderProgramIds.end())
+        return;
+
+    glUseProgram(it->second);
+    int location = glGetUniformLocation(it->second, uniformName.c_str());
+    if (location != -1) {
+        glUniform3fv(location, 1, &value.x);
+    }
+}
+
+void OpenGLRender::setUniform(const std::string &programName,
+                              const std::string &uniformName, float value) {
+    auto it = shaderProgramIds.find(programName);
+    if (it == shaderProgramIds.end())
+        return;
+
+    glUseProgram(it->second);
+    int location = glGetUniformLocation(it->second, uniformName.c_str());
+    if (location != -1) {
+        glUniform1f(location, value);
+    }
 }

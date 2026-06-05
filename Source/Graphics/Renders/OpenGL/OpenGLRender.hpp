@@ -28,6 +28,11 @@ class OpenGLRender : public IRender {
     void useShaderProgramFromPool(const std::string &name) override;
     void deleteShaderProgramFromPool(const std::string &name) override;
 
+    void setUniform(const std::string& programName, const std::string& uniformName, const glm::mat4& value);
+    void setUniform(const std::string& programName, const std::string& uniformName, const glm::vec3& value);
+    void setUniform(const std::string& programName, const std::string& uniformName, float value);
+    unsigned int getProgramID(const std::string& programName) const;
+
     void rendMesh(Mesh &mesh) override;
 };
 

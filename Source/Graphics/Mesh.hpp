@@ -10,7 +10,7 @@ class Mesh final {
     std::vector<int> m_indices;
 
   public:
-    void loadOBJ(const std::string& path);
+    void loadOBJ(const std::string &path);
 
     Mesh &pushVertex(const glm::vec3 &vertex);
     Mesh &pushIndex(int index);

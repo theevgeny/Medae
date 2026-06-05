@@ -1,4 +1,6 @@
+#include <Macros.hpp>
 #include <Graphics/Mesh.hpp>
+#include <Util/CriticalError.hpp>
 #include <cstdlib>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -11,8 +13,8 @@ void Mesh::loadOBJ(const std::string &path) {
     std::string err;
     bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
                                 path.c_str());
-    if (!warn.empty() || !err.empty() || !ret) {
-        exit(1002);
+    if (!err.empty() || !ret) {
+        throwCriticalError(M_PP "Error of OBJ model load: "+err);
     }
     m_vertices.clear();
     m_indices.clear();
