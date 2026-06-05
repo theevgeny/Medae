@@ -1,3 +1,5 @@
+#include "Graphics/IRender.hpp"
+#include "Graphics/Shader.hpp"
 #include <Graphics/Renders/OpenGL/OpenGLRender.hpp>
 #include <Medae.hpp>
 #include <iostream>
@@ -12,12 +14,15 @@ std::thread &Medae::getMainThread() { return *main_thread; }
 
 Medae::Medae(ProgramArgs args) {
     main_thread = std::make_unique<std::thread>([this, args = std::move(args)]() {
-        std::cout << args.getFlag("test1") << std::endl;
-        std::cout << args.getValue("test2") << std::endl;
-        m_render = new OpenGLRender();
-        m_render->renderLoop([](IRender *render) {
-            render->drawTriangle({1, 1}, {1, 0}, {0, 1}, {0, 1, 1});
-            render->drawTriangle({0, 0}, {1, 0}, {0, 1}, {1, 1, 0});
+        Mesh testMesh{};
+        testMesh.loadOBJ("test.obj");
+        Shader vshader("v.glsl", ShaderType::Vertex);
+        Shader fshader("f.glsl", ShaderType::Fragment);
+        m_render = std::make_unique<OpenGLRender>();
+        m_render->addShaderProgramToPool("test", {vshader, fshader});
+        m_render->useShaderProgramFromPool("test");
+        m_render->renderLoop([&testMesh](IRender *render) {
+            render->rendMesh(testMesh);
         });
     });
 }

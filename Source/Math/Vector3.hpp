@@ -2,7 +2,7 @@
 
 #include <Macros.hpp>
 
-/** Деление на нулевой скаляр даёт нулевой вектор  */
+/** Dividing by a zero scalar produces a zero vector  */
 struct Vector3 {
     double x, y, z;
     M_ND Vector3() noexcept;

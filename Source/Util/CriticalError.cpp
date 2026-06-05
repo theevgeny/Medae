@@ -1,5 +1,4 @@
 #include <Util/CriticalError.hpp>
-#include <windows.h>
 #include <portable_file_dialogs.h>
 #include <thread>
 #include <Medae.hpp>

@@ -7,7 +7,7 @@
 
 class Medae final {
     static Medae *instance;
-    IRender *m_render;
+    std::unique_ptr<IRender> m_render;
     static std::unique_ptr<std::thread> main_thread;
     Medae &operator=(Medae &) = delete;
     Medae(Medae &) = delete;

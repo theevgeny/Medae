@@ -1,7 +1,8 @@
-#include "Graphics/Shader.hpp"
-#include "glm/ext/vector_float3.hpp"
+#include <Macros.hpp>
+#include <Graphics/Renders/OpenGL/OpenGLShaderTools.hpp>
+#include <Util/CriticalError.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <Graphics/Renders/OpenGL/OpenGLRender.hpp>
-#include <cstdlib>
 
 OpenGLRender::OpenGLRender() {
     glfwInit();
@@ -11,13 +12,8 @@ OpenGLRender::OpenGLRender() {
     height = 480;
     glfwMakeContextCurrent(m_window);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        exit(1001);
+        throwCriticalError(M_PP + "GLAD not loaded");
     }
-    Shader vertex{}, fragment{};
-    vertex.load("v.glsl", GL_VERTEX_SHADER);
-    fragment.load("f.glsl", GL_FRAGMENT_SHADER);
-    vertex.use();
-    fragment.use();
 }
 OpenGLRender::OpenGLRender(int windowXSize, int windowYSize, char *windowName) {
     glfwInit();
@@ -28,13 +24,8 @@ OpenGLRender::OpenGLRender(int windowXSize, int windowYSize, char *windowName) {
     height = windowYSize;
     glfwMakeContextCurrent(m_window);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        exit(1001);
+        throwCriticalError(M_PP + "GLAD not loaded");
     }
-    Shader vertex{}, fragment{};
-    vertex.load("v.glsl", GL_VERTEX_SHADER);
-    fragment.load("f.glsl", GL_FRAGMENT_SHADER);
-    vertex.use();
-    fragment.use();
 }
 OpenGLRender::~OpenGLRender() { glfwDestroyWindow(m_window); }
 void OpenGLRender::setWindowProperties(int windowXSize, int windowYSize,
@@ -58,18 +49,36 @@ void OpenGLRender::renderLoop(std::function<void(IRender *)> callback) {
     }
 };
 
-void OpenGLRender::drawTriangle(Vector2 p1, Vector2 p2, Vector2 p3, Color c) {
-    glBegin(GL_TRIANGLES);
-    glColor3d(c.r, c.g, c.b);
-    glVertex2d(p1.x, p1.y);
-    glVertex2d(p2.x, p2.y);
-    glVertex2d(p3.x, p3.y);
-    glEnd();
-};
+void OpenGLRender::addShaderProgramToPool(
+    const std::string &name,
+    std::initializer_list<std::reference_wrapper<Shader>> shaders) {
+    auto result = shaderProgramIds.emplace(
+        name, OpenGLShaderTools::addShaderProgramToOpenGL(shaders));
+    if (!result.second)
+        throwCriticalError(M_PP + "Attempt to create a shader in pool with the "
+                                  "same name as the previous one");
+}
+void OpenGLRender::useShaderProgramFromPool(const std::string &name) {
+    auto it = shaderProgramIds.find(name);
+    if (it != shaderProgramIds.end()) {
+        glUseProgram(it->second);
+    } else
+        throwCriticalError(M_PP + "Shader not found in pool");
+}
+void OpenGLRender::deleteShaderProgramFromPool(const std::string &name) {
+    auto it = shaderProgramIds.find(name);
+    if (it != shaderProgramIds.end()) {
+        int currentProgramId;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgramId);
+        if ((int)it->second == currentProgramId)
+            throwCriticalError(M_PP + "Cannot delete used shader");
+        glDeleteProgram(it->second);
+    } else
+        throwCriticalError(M_PP + "Shader not found in pool");
+}
 
 void OpenGLRender::rendMesh(Mesh &mesh) {
     static unsigned int VAO = 0, VBO = 0, EBO = 0;
-
     if (VAO == 0) {
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);

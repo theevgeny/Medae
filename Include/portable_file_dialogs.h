@@ -726,7 +726,7 @@ inline HANDLE internal::platform::new_style_context::create()
         // crash with error “default context is already set”.
         sizeof(act_ctx),
         ACTCTX_FLAG_RESOURCE_NAME_VALID | ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID,
-        "shell32.dll", 0, 0, sys_dir.c_str(), (LPCSTR)124,
+        "shell32.dll", 0, 0, sys_dir.c_str(), (LPCSTR)124, nullptr, nullptr
     };
 
     return ::CreateActCtxA(&act_ctx);
@@ -1388,7 +1388,7 @@ inline message::message(std::string const &title,
     m_mappings[IDRETRY] = button::retry;
     m_mappings[IDIGNORE] = button::ignore;
 
-    m_async->start_func([this, text, title, style](int* exit_code) -> std::string
+    m_async->start_func([text, title, style](int* exit_code) -> std::string
     {
         auto wtext = internal::str2wstr(text);
         auto wtitle = internal::str2wstr(title);

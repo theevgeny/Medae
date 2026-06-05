@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Graphics/Color.hpp>
-#include <cstdio>
 #include <std_image.h>
 #include <string>
 #include <vector>
