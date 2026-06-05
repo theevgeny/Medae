@@ -18,9 +18,9 @@ Medae::Medae(ProgramArgs args) {
                                                  args = std::move(args)]() {
         try {
             Mesh testMesh{};
-            testMesh.loadOBJ("test.obj");
-            Shader vshader((std::string) "v.glsl", ShaderType::Vertex);
-            Shader fshader((std::string) "f.glsl", ShaderType::Fragment);
+            testMesh.loadOBJ("example.obj");
+            Shader vshader((std::string) "vertex-example.glsl", ShaderType::Vertex);
+            Shader fshader((std::string) "fragment-example.glsl", ShaderType::Fragment);
             m_render = std::make_unique<OpenGLRender>();
             m_render->addShaderProgramToPool("base", {vshader, fshader});
             m_render->useShaderProgramFromPool("base");
