@@ -36,12 +36,18 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://github.com/kcat/openal-soft.git
 	GIT_TAG 1.25.2
 )
+FetchContent_Declare(
+  Boost
+  GIT_REPOSITORY https://github.com/boostorg/boost.git
+  GIT_PROGRESS TRUE
+  GIT_TAG boost-1.82.0
+)
 
-FetchContent_MakeAvailable(glm glfw glad entt JoltPhysics openal)
+FetchContent_MakeAvailable(glm glfw glad entt JoltPhysics openal Boost)
 
 glad_add_library(glad_gl_core_43 STATIC REPRODUCIBLE API gl:core=4.6)
 
 add_executable(Medae source/main.cpp)
 
-target_link_libraries(Medae PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal)
+target_link_libraries(Medae PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal Boost::asio)
 
