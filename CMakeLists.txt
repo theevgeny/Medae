@@ -42,12 +42,21 @@ FetchContent_Declare(
   GIT_PROGRESS TRUE
   GIT_TAG boost-1.82.0
 )
+FetchContent_Declare(
+	tomlplusplus
+	GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+	GIT_TAG v3.4.0
+)
 
-FetchContent_MakeAvailable(glm glfw glad entt JoltPhysics openal Boost)
+FetchContent_MakeAvailable(glm glfw glad entt JoltPhysics openal Boost tomlplusplus)
 
 glad_add_library(glad_gl_core_43 STATIC REPRODUCIBLE API gl:core=4.6)
 
-add_executable(Medae source/main.cpp)
+add_executable(server
+	Source/Server/Main.cpp
 
-target_link_libraries(Medae PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal Boost::asio)
+	Source/Server/Server.cpp
+)
+
+target_link_libraries(server PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal Boost::asio tomlplusplus)
 
