@@ -4,29 +4,44 @@ project(Medae)
 include(FetchContent)
 
 FetchContent_Declare(
-    glm
-    GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG 1.0.3
+	glm
+	GIT_REPOSITORY https://github.com/g-truc/glm.git
+	GIT_TAG 1.0.3
 )
 FetchContent_Declare(
-    glfw
-    GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG 3.5.1
+	glfw
+	GIT_REPOSITORY https://github.com/glfw/glfw.git
+	GIT_TAG 3.5.1
 )
 FetchContent_Declare(
-    glad
-    GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-    GIT_TAG v2.0.8
-    GIT_SHALLOW 1
-    SOURCE_SUBDIR cmake
+	glad
+	GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+	GIT_TAG v2.0.8
+	GIT_SHALLOW 1
+	SOURCE_SUBDIR cmake
 )
-FetchContent_MakeAvailable(glad)
-FetchContent_MakeAvailable(glm)
-FetchContent_MakeAvailable(glfw)
+FetchContent_Declare(
+	EnTT
+	GIT_REPOSITORY https://github.com/skypjack/entt.git
+	GIT_TAG v4.0.0
+)
+FetchContent_Declare(
+	JoltPhysics
+	GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics
+	GIT_TAG v5.6.0
+	SOURCE_SUBDIR Build
+)
+FetchContent_Declare(
+	openal
+	GIT_REPOSITORY https://github.com/kcat/openal-soft.git
+	GIT_TAG 1.25.2
+)
+
+FetchContent_MakeAvailable(glm glfw glad entt JoltPhysics openal)
 
 glad_add_library(glad_gl_core_43 STATIC REPRODUCIBLE API gl:core=4.6)
 
 add_executable(Medae source/main.cpp)
 
-target_link_libraries(Medae PRIVATE glm glfw glad_gl_core_43)
+target_link_libraries(Medae PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal)
 
