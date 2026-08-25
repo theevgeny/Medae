@@ -5,7 +5,7 @@
 
 namespace Medae::Server {
 	
-	struct Configuration { // NOLINT
+	struct Config { // NOLINT
 		uint16_t port;
 		std::string address;
 		uint16_t maxPlayersCount;
@@ -15,9 +15,9 @@ namespace Medae::Server {
 	class Server {
 	public:
 		void start();
-		void configure(int argc, char** argv);
+		bool configure(int argc, char** argv);
 	private:
-		Configuration m_configuration;
+		Config m_config;
 	};
 
 };

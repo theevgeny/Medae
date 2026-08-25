@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[]) {
 	auto server = std::make_shared<Medae::Server::Server>();
-	server->configure(argc, argv);
+	if (!server->configure(argc, argv)) { return -1; }
 	server->start();
 }
 

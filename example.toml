@@ -1,0 +1,8 @@
+[common]
+max_players_count=20
+motd="Hello, faggots!"
+
+[network]
+port=67
+address="www.example.com"
+
