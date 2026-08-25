@@ -4,10 +4,12 @@ FormatStyle: file
 
 Checks: |
   *,
+  -altera-unroll-loops,
   -llvmlibc-*,
   -fuchsia-*,
   -google-*,
   -llvm-*,
+  -performance-padding, 
   -misc-non-private-member-variables-in-classes,
   -readability-magic-numbers,
   -readability-identifier-length,
