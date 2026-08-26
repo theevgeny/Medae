@@ -2,31 +2,41 @@
 
 #include <iostream>
 
+#include <string>
 #include <toml++/toml.hpp>
+#include <spdlog/spdlog.h>
 
 void Medae::Server::Server::start() { // NOLINT
-	std::cout << "Successfully started\n";
+	spdlog::info("Successfully started");
 	while (true) {
 		std::cout << "Type command (exit): ";
 		std::string command;
 		std::cin >> command;
 		if (command == "exit") { break; }
 	}
-	std::cout << "Successfully stopped\n";
+	spdlog::info("Successfully stopped");
 }
 
 bool Medae::Server::Server::configure(int argc, char** argv) {
-	if (argc < 2) { return false; }
+	if (argc < 2) {
+		spdlog::error("No file specified");
+		return false;
+	}
 
 	toml::table tbl;
 
 	try {
 		tbl = toml::parse_file(argv[1]); // NOLINT
 	} catch (const toml::parse_error& err) {
-    std::cerr
-        << "Error parsing file '" << *err.source().path
-        << "':\n" << err.description()
-        << "\n (" << err.source().begin << ")\n";
+		spdlog::error(
+			"Error parsing file '{}':\n"
+			"{}\n"
+			"on position ({}, {})",
+			*err.source().path,
+			err.description(),
+			err.source().begin.line,
+			err.source().begin.column
+		);
     return false;
 	}
 

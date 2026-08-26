@@ -47,8 +47,13 @@ FetchContent_Declare(
 	GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
 	GIT_TAG v3.4.0
 )
+FetchContent_Declare(
+	spdlog
+	GIT_REPOSITORY https://github.com/gabime/spdlog.git
+	GIT_TAG v1.17.0
+)
 
-FetchContent_MakeAvailable(glm glfw glad entt JoltPhysics openal Boost tomlplusplus)
+FetchContent_MakeAvailable(glm glfw glad entt JoltPhysics openal Boost tomlplusplus spdlog)
 
 glad_add_library(glad_gl_core_43 STATIC REPRODUCIBLE API gl:core=4.6)
 
@@ -58,5 +63,5 @@ add_executable(server
 	Source/Server/Server.cpp
 )
 
-target_link_libraries(server PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal Boost::asio tomlplusplus)
+target_link_libraries(server PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal Boost::asio tomlplusplus spdlog)
 
