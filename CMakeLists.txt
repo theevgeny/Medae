@@ -63,5 +63,31 @@ add_executable(server
 	Source/Server/Server.cpp
 )
 
-target_link_libraries(server PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal Boost::asio tomlplusplus spdlog)
+target_link_libraries(server PRIVATE Boost::asio tomlplusplus spdlog)
+
+add_executable(client
+	Source/Client/Main.cpp
+)
+
+target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT Jolt openal Boost::asio tomlplusplus spdlog)
+
+add_link_options(-Wl,--gc-sections,-s)
+add_compile_options(
+	-fcolor-diagnostics
+	-ffunction-sections
+	-fdata-sections
+	-Oz
+	-O2
+	-g
+)
+
+add_custom_command(TARGET server POST_BUILD
+    COMMAND ${CMAKE_STRIP} --strip-all $<TARGET_FILE:server>
+)
+
+add_custom_command(TARGET client POST_BUILD
+    COMMAND ${CMAKE_STRIP} --strip-all $<TARGET_FILE:client>
+)
+
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
