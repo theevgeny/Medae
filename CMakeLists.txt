@@ -41,6 +41,8 @@ add_executable(server
 
 	Source/Server/PropertiesConfig.cpp
 	Source/Server/ArgumentsParser.cpp
+
+	Source/Network/Network.cpp
 )
 
 target_link_libraries(server PRIVATE Boost::asio Boost::filesystem Boost::program_options tomlplusplus spdlog::spdlog)
@@ -53,6 +55,8 @@ add_executable(client
 	Source/Client/Client.cpp
 
 	Source/Graphics/Graphics.cpp
+
+	Source/Network/Network.cpp
 )
 
 target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT::EnTT Jolt OpenAL::OpenAL Boost::filesystem Boost::asio Boost::program_options spdlog::spdlog)
@@ -64,7 +68,6 @@ add_compile_options(
 	-fcolor-diagnostics
 	-ffunction-sections
 	-fdata-sections
-	-Oz
 	-O2
 	-g
 )

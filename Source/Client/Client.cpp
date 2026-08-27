@@ -6,13 +6,15 @@
 
 #define FPS 5
 
-Medae::Client::Client::Client(std::unique_ptr<Medae::Graphics::FacadeInterface> graphicsFacade)
+using namespace Medae::Client;
+
+Client::Client(std::unique_ptr<Medae::Graphics::FacadeInterface> graphicsFacade)
 	: m_graphicsFacade(std::move(graphicsFacade))
 {
 
 }
 
-void Medae::Client::Client::loop()
+void Client::loop()
 {
 	m_graphicsFacade->create_window("Medae client", 1920, 1080);
 	while (true) {
