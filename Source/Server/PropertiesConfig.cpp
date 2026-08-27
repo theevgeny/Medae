@@ -1,8 +1,9 @@
 #include "PropertiesConfig.hpp"
 
-#include <boost/filesystem.hpp>
 #include <ios>
 #include <iostream>
+
+#include <boost/filesystem.hpp>
 #include <spdlog/spdlog.h>
 #include <toml++/toml.hpp>
 

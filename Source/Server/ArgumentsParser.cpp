@@ -1,10 +1,11 @@
 #include "ArgumentsParser.hpp"
 
 #include <exception>
+#include <iostream>
 
 #include <boost/program_options.hpp>
-#include <iostream>
 #include <spdlog/spdlog.h>
+
 
 namespace po = boost::program_options;
 

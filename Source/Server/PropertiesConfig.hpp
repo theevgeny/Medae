@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <spdlog/common.h>
 #include <string>
+
+#include <spdlog/common.h>
 
 #include "Util/Macros.hpp"
 

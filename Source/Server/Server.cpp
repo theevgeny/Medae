@@ -3,10 +3,10 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <thread>
 
 #include <spdlog/spdlog.h>
-#include <string>
 #include <toml++/toml.hpp>
 
 #include "Network/Network.hpp"
