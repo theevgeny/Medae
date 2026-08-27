@@ -1,24 +1,21 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
+#include "Server/ArgumentsParser.hpp"
+#include "Server/PropertiesConfig.hpp"
 
 namespace Medae::Server {
-	
-	struct Config { // NOLINT
-		uint16_t port;
-		std::string address;
-		uint16_t maxPlayersCount;
-		std::string motd;
-	};
 
-	class Server {
-	public:
-		void loop();
-		bool configure(int argc, char** argv);
-	private:
-		Config m_config;
-	};
+class Server
+{
+  public:
+	void loop();
+	explicit Server(const ArgumentsParser& argumentParser);
 
+	[[nodiscard]] const PropertiesConfig& getProperies() const;
+
+  private:
+	PropertiesConfig m_properies{};
+	ArgumentsParser m_argumentParser{};
 };
 
+}; // namespace Medae::Server

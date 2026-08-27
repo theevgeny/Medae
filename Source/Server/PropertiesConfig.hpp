@@ -8,8 +8,7 @@ namespace Medae::Server {
 class PropertiesConfig
 {
   public:
-	explicit PropertiesConfig(const char* path);
-	explicit PropertiesConfig(const std::string& path);
+	void init(const std::string& path);
 
 	[[nodiscard]] const std::string& getAddress() const;
 	[[nodiscard]] const std::string& getMotd() const;

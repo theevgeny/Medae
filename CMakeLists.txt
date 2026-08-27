@@ -24,7 +24,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glad JoltPhysics)
 
-find_package(Boost 1.92 REQUIRED COMPONENTS asio)
+find_package(Boost 1.92 REQUIRED COMPONENTS asio program_options filesystem)
 find_package(glfw3 3.5 REQUIRED)
 find_package(tomlplusplus 3.4 REQUIRED)
 find_package(OpenAL 1.25.2 REQUIRED)
@@ -38,9 +38,12 @@ add_executable(server
 	Source/Server/Main.cpp
 
 	Source/Server/Server.cpp
+
+	Source/Server/PropertiesConfig.cpp
+	Source/Server/ArgumentsParser.cpp
 )
 
-target_link_libraries(server PRIVATE Boost::asio tomlplusplus spdlog::spdlog)
+target_link_libraries(server PRIVATE Boost::asio Boost::filesystem Boost::program_options tomlplusplus spdlog::spdlog)
 
 target_include_directories(server PRIVATE Source)
 
@@ -52,7 +55,7 @@ add_executable(client
 	Source/Graphics/Graphics.cpp
 )
 
-target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT::EnTT Jolt OpenAL::OpenAL Boost::asio spdlog::spdlog)
+target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT::EnTT Jolt OpenAL::OpenAL Boost::filesystem Boost::asio Boost::program_options spdlog::spdlog)
 
 target_include_directories(client PRIVATE Source)
 

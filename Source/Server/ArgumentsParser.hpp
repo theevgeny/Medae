@@ -4,17 +4,17 @@
 
 namespace Medae::Server {
 
-class Arguments
+class ArgumentsParser
 {
   private:
-	std::string m_propertiesFilePath; // --properties-file
-	bool m_showHelp;
+	std::string m_propertiesFilePath = "./properties.toml"; // --properties-file
+	bool m_showHelp = false;
 
   public:
 	[[nodiscard]] const std::string& getPropertiesFilePath() const;
 	[[nodiscard]] bool isShowHelp() const;
 
-	Arguments(int argc, char** argv);
+	void init(int argc, char** argv);
 };
 
 } // namespace Medae::Server

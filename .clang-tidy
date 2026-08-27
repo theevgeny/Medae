@@ -4,6 +4,8 @@ FormatStyle: file
 
 Checks: |
   *,
+  -cppcoreguidelines-special-member-functions,
+  -hicpp-special-member-functions,
   -altera-unroll-loops,
   -llvmlibc-*,
   -fuchsia-*,
