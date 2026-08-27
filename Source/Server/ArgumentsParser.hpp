@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "Util/Macros.hpp"
+
 namespace Medae::Server {
 
 class ArgumentsParser
@@ -11,10 +13,10 @@ class ArgumentsParser
 	bool m_showHelp = false;
 
   public:
-	[[nodiscard]] const std::string& getPropertiesFilePath() const;
-	[[nodiscard]] bool isShowHelp() const;
+	NODIS const std::string& getPropertiesFilePath() const;
+	NODIS bool isShowHelp() const;
 
-	void init(int argc, char** argv);
+	ArgumentsParser(int argc, char** argv);
 };
 
 } // namespace Medae::Server

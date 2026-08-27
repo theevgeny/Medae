@@ -10,7 +10,8 @@ namespace fs = boost::filesystem;
 
 using namespace Medae::Server;
 
-void PropertiesConfig::init(const std::string& path)
+PropertiesConfig::PropertiesConfig(const char* path) : PropertiesConfig(std::string(path)) {}
+PropertiesConfig::PropertiesConfig(const std::string& path)
 {
 	if (fs::exists(path)) {
 		toml::table tbl;
@@ -23,6 +24,10 @@ void PropertiesConfig::init(const std::string& path)
 			auto maxPlayersCount = tbl["common"]["max_players_count"].value_exact<int64_t>();
 			if (maxPlayersCount.has_value()) {
 				m_maxPlayersCount = static_cast<uint16_t>(*maxPlayersCount);
+			}
+			auto logLevel = tbl["common"]["log_level"].value_exact<std::string>();
+			if (logLevel.has_value()) {
+				m_logLevel = getLogLevelFromString(*logLevel);
 			}
 			auto address = tbl["network"]["address"].value_exact<std::string>();
 			if (address.has_value()) {
@@ -50,6 +55,7 @@ void PropertiesConfig::createDefaultPropertiesFile(const std::string& path)
 	toml::table network;
 	common.insert_or_assign("max_players_count", 50);
 	common.insert_or_assign("motd", "Medae Server");
+	common.insert_or_assign("log_level", "INFO");
 	network.insert_or_assign("port", 30665);
 	network.insert_or_assign("address", "0.0.0.0");
 	tbl.insert_or_assign("common", common);
@@ -68,6 +74,10 @@ const std::string& PropertiesConfig::getAddress() const
 const std::string& PropertiesConfig::getMotd() const
 {
 	return m_motd;
+}
+spdlog::level::level_enum PropertiesConfig::getLogLevel() const
+{
+	return m_logLevel;
 }
 uint16_t PropertiesConfig::getPort() const
 {

@@ -1,27 +1,26 @@
 #pragma once
 
+#include <memory>
+
 #include "Network/Network.hpp"
 #include "Server/ArgumentsParser.hpp"
 #include "Server/PropertiesConfig.hpp"
-#include <memory>
 
 namespace Medae::Server {
 
 class Server
 {
-public:
+  public:
 	void loop();
-	explicit Server(
-		const ArgumentsParser& argumentParser
-	);
-	[[nodiscard]] const PropertiesConfig& getProperies() const;
+	explicit Server(const std::shared_ptr<ArgumentsParser>& argumentParser);
+	NODIS const std::shared_ptr<PropertiesConfig>& getProperies() const;
 
-private:
+  private:
 	void processPacket(Network::Packet packet);
 	void processConnection(Network::PeerID peerID);
 
-	PropertiesConfig m_properies{};
-	ArgumentsParser m_argumentParser{};
+	std::shared_ptr<PropertiesConfig> m_properies;
+	std::shared_ptr<ArgumentsParser> m_argumentParser;
 	std::shared_ptr<Medae::Network::PeerFacade> m_networkFacade;
 };
 

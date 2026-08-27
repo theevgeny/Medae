@@ -19,7 +19,7 @@ bool ArgumentsParser::isShowHelp() const
 	return m_showHelp;
 }
 
-void ArgumentsParser::init(int argc, char** argv)
+ArgumentsParser::ArgumentsParser(int argc, char** argv)
 {
 	try {
 		po::options_description desc("Allowed options");

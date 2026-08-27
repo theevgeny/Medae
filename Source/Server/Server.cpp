@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <thread>
 
 #include <spdlog/spdlog.h>
@@ -18,18 +19,17 @@ void Server::loop() // NOLINT
 {
 	spdlog::info("Successfully started");
 
-	std::thread packetsHandling([&] () {
+	std::thread packetsHandling([&]() {
 		while (true) {
 			Network::Packet packet = m_networkFacade->recieve();
 			processPacket(packet);
 		}
 	});
-	
-	std::thread connectionsHandling([&] () {
+
+	std::thread connectionsHandling([&]() {
 		while (true) {
-			Network::PeerID peerID = m_networkFacade->waitForConnection(
-				{m_properies.getAddress(), m_properies.getPort()}
-			);
+			Network::PeerID peerID =
+				m_networkFacade->waitForConnection({m_properies->getAddress(), m_properies->getPort()});
 			processConnection(peerID);
 		}
 	});
@@ -55,18 +55,19 @@ void Server::processConnection(Network::PeerID peerID) // NOLINT
 	spdlog::debug("Peer with peerID {} proceed", peerID);
 }
 
-Server::Server(const ArgumentsParser& argumentParser)
+Server::Server(const std::shared_ptr<ArgumentsParser>& argumentParser)
 {
-	if (argumentParser.isShowHelp()) {
-		throw std::runtime_error("help");
+	if (!argumentParser) {
+		throw std::runtime_error("NullPointerException" FILEPOINT "\n"
+								 "argumentParser is null");
 	}
 	m_argumentParser = argumentParser;
-	m_properies.init(m_argumentParser.getPropertiesFilePath());
-
-	m_networkFacade = std::make_shared<Network::DummyPeerFacade>(m_properies.getMaxPlayersCount());
+	m_properies = std::make_shared<PropertiesConfig>(m_argumentParser->getPropertiesFilePath());
+	spdlog::set_level(m_properies->getLogLevel());
+	m_networkFacade = std::make_shared<Network::DummyPeerFacade>(m_properies->getMaxPlayersCount());
 }
 
-const PropertiesConfig& Medae::Server::Server::getProperies() const
+const std::shared_ptr<PropertiesConfig>& Medae::Server::Server::getProperies() const
 {
 	return m_properies;
 }
