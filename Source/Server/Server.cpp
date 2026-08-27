@@ -6,7 +6,7 @@
 #include <toml++/toml.hpp>
 #include <spdlog/spdlog.h>
 
-void Medae::Server::Server::start() { // NOLINT
+void Medae::Server::Server::loop() { // NOLINT
 	spdlog::info("Successfully started");
 	while (true) {
 		std::cout << "Type command (exit): ";

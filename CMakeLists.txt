@@ -42,11 +42,19 @@ add_executable(server
 
 target_link_libraries(server PRIVATE Boost::asio tomlplusplus spdlog::spdlog)
 
+target_include_directories(server PRIVATE Source)
+
 add_executable(client
 	Source/Client/Main.cpp
+	
+	Source/Client/Client.cpp
+
+	Source/Graphics/Graphics.cpp
 )
 
 target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT::EnTT Jolt OpenAL::OpenAL Boost::asio spdlog::spdlog)
+
+target_include_directories(client PRIVATE Source)
 
 add_link_options(-Wl,--gc-sections,-s)
 add_compile_options(

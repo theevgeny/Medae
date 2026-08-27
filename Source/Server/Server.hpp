@@ -14,7 +14,7 @@ namespace Medae::Server {
 
 	class Server {
 	public:
-		void start();
+		void loop();
 		bool configure(int argc, char** argv);
 	private:
 		Config m_config;
