@@ -1,7 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <unordered_map>
+
+#include <boost/asio.hpp>
 
 namespace Medae::Network {
 
@@ -13,37 +17,38 @@ namespace Medae::Network {
 	struct Packet { // NOLINT
 		uint8_t* content;
 		uint16_t size;
+		Peer sender;
 	};
 
 	using PeerID = uint16_t;
 
-	class PeerFacade { // NOLINT
+	class PeerFacade {
 	public:
-		explicit PeerFacade(uint16_t maxConnectionsCount) : m_maxConnectionsCount(maxConnectionsCount) { }
-		/**
-		 * @brief Connect to host
-		 * @param peer Host
-		 */
-		virtual void connect(Peer peer) = 0;
-		/**
-		 * @brief Stop program until new peer open connection
-		 * @param peer Your host
-		 * @return Unique peerID for every connection
-		 */
-		virtual PeerID waitForConnection(Peer peer) = 0;
-		virtual void send(PeerID peerID, Packet packet) = 0;
-		virtual Packet recieve() = 0;
-	private:
-		uint16_t m_maxConnectionsCount;
+		virtual ~PeerFacade() = default;
+		virtual void initSocket(Peer peer) = 0;
+		virtual void send(Packet packet, Peer peer) = 0;
+		virtual Packet receive() = 0;
 	};
 
-	class DummyPeerFacade : public PeerFacade { // NOLINT
+	using boost::asio::ip::udp;
+	class PeerFacadeImpl : public PeerFacade {
 	public:
-		explicit DummyPeerFacade(uint16_t maxConnectionsCount) : PeerFacade(maxConnectionsCount) { }
-		void connect(Peer peer) override;
-		PeerID waitForConnection(Peer peer) override;
-		void send(PeerID peerID, Packet packet) override;
-		Packet recieve() override;
+		~PeerFacadeImpl() override = default;
+		void initSocket(Peer peer) override;
+		void send(Packet packet, Peer peer) override;
+		Packet receive() override;
+	private:
+		std::unique_ptr<udp::socket> m_socket;
+		boost::asio::io_context m_ioContext;
+		std::unordered_map<PeerID, udp::endpoint> m_endpoints;
+	}; 
+
+	class DummyPeerFacade : public PeerFacade {
+	public:
+		~DummyPeerFacade() override = default;
+		void initSocket(Peer peer) override;
+		void send(Packet packet, Peer peer) override;
+		Packet receive() override;
 	};
 
 }

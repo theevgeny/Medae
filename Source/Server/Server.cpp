@@ -21,16 +21,8 @@ void Server::loop() // NOLINT
 
 	std::thread packetsHandling([&]() {
 		while (true) {
-			Network::Packet packet = m_networkFacade->recieve();
+			Network::Packet packet = m_networkFacade->receive();
 			processPacket(packet);
-		}
-	});
-
-	std::thread connectionsHandling([&]() {
-		while (true) {
-			Network::PeerID peerID =
-				m_networkFacade->waitForConnection({m_properies->getAddress(), m_properies->getPort()});
-			processConnection(peerID);
 		}
 	});
 
@@ -64,7 +56,8 @@ Server::Server(const std::shared_ptr<ArgumentsParser>& argumentParser)
 	m_argumentParser = argumentParser;
 	m_properies = std::make_shared<PropertiesConfig>(m_argumentParser->getPropertiesFilePath());
 	spdlog::set_level(m_properies->getLogLevel());
-	m_networkFacade = std::make_shared<Network::DummyPeerFacade>(m_properies->getMaxPlayersCount());
+	
+	m_networkFacade = std::make_shared<Network::DummyPeerFacade>();
 }
 
 const std::shared_ptr<PropertiesConfig>& Medae::Server::Server::getProperies() const
