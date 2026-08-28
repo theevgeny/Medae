@@ -1,9 +1,11 @@
 #include "Network.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <thread>
+#include <iostream>
 
 #include <spdlog/spdlog.h>
 #include <boost/asio/buffer.hpp>
@@ -20,19 +22,28 @@ void PeerFacadeImpl::send(Packet packet, Peer peer)
 }
 
 void PeerFacadeImpl::initSocket(Peer peer) {
-	m_socket = std::make_unique<udp::socket>(m_ioContext, peer.port);
-	spdlog::info("Socket {}:{} inited", peer.host, peer.port);
+	m_socket = std::make_unique<udp::socket>(m_ioContext, udp::endpoint(udp::v4(), peer.port));
+	spdlog::info("Socket {}:{} opened", peer.host, peer.port);
 }
 
 Packet PeerFacadeImpl::receive() {
 	Packet packet;
+	if (!m_socket || !m_socket->is_open()) {
+		spdlog::error("Failede receive message: Socket was not opened");
+		return packet;
+	}
 	udp::endpoint remoteEndpoint;
-	m_socket->receive_from(boost::asio::buffer(packet.content, packet.size), remoteEndpoint);
+	boost::system::error_code ec;
+	packet.size = m_socket->receive_from(boost::asio::buffer(packet.content, MAX_PACKET_SIZE), remoteEndpoint, 0, ec);
+	if (ec) {
+		spdlog::error("receive_from failed: {} (value {})", ec.message(), ec.value());
+		return packet;
+	}
   packet.sender.host = remoteEndpoint.address().to_string();
   packet.sender.port = remoteEndpoint.port();
 	spdlog::info("Received packet with size {}", packet.size);
 
-  return packet;
+	return packet;
 }
 
 

@@ -1,5 +1,5 @@
 [common]
-log_level = 'INFO'
+log_level = 'DEBUG'
 max_players_count = 50
 motd = 'Medae Server'
 

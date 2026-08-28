@@ -41,6 +41,7 @@ namespace Medae::Network {
 		std::unique_ptr<udp::socket> m_socket;
 		boost::asio::io_context m_ioContext;
 		std::unordered_map<PeerID, udp::endpoint> m_endpoints;
+		const uint16_t MAX_PACKET_SIZE = 1024; 
 	}; 
 
 	class DummyPeerFacade : public PeerFacade {

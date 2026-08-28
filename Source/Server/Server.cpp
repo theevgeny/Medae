@@ -19,10 +19,15 @@ void Server::loop() // NOLINT
 {
 	spdlog::info("Successfully started");
 
+	m_networkFacade->initSocket({m_properies->getAddress(), m_properies->getPort()});
+
+	bool loop = true;
+
 	std::thread packetsHandling([&]() {
 		while (true) {
 			Network::Packet packet = m_networkFacade->receive();
 			processPacket(packet);
+			if (!loop) { break; }
 		}
 	});
 
@@ -34,6 +39,8 @@ void Server::loop() // NOLINT
 			break;
 		}
 	}
+	loop = false;
+	packetsHandling.join();
 	spdlog::info("Successfully stopped");
 }
 
@@ -57,7 +64,7 @@ Server::Server(const std::shared_ptr<ArgumentsParser>& argumentParser)
 	m_properies = std::make_shared<PropertiesConfig>(m_argumentParser->getPropertiesFilePath());
 	spdlog::set_level(m_properies->getLogLevel());
 	
-	m_networkFacade = std::make_shared<Network::DummyPeerFacade>();
+	m_networkFacade = std::make_shared<Network::PeerFacadeImpl>();
 }
 
 const std::shared_ptr<PropertiesConfig>& Medae::Server::Server::getProperies() const

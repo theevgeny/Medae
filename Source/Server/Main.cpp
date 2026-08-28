@@ -20,4 +20,5 @@ int main(int argc, char** argv)
 			spdlog::error("Runtime error: {}", error.what());
 		}
 	}
+	return 0;
 }
