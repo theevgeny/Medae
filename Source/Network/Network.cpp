@@ -5,10 +5,9 @@
 #include <memory>
 #include <string>
 #include <thread>
-#include <iostream>
 
-#include <spdlog/spdlog.h>
 #include <boost/asio/buffer.hpp>
+#include <spdlog/spdlog.h>
 
 using namespace Medae::Network;
 
@@ -21,12 +20,14 @@ void PeerFacadeImpl::send(Packet packet, Peer peer)
 	spdlog::info("Sent packet with size {}", packet.size);
 }
 
-void PeerFacadeImpl::initSocket(Peer peer) {
+void PeerFacadeImpl::initSocket(Peer peer)
+{
 	m_socket = std::make_unique<udp::socket>(m_ioContext, udp::endpoint(udp::v4(), peer.port));
 	spdlog::info("Socket {}:{} opened", peer.host, peer.port);
 }
 
-Packet PeerFacadeImpl::receive() {
+Packet PeerFacadeImpl::receive()
+{
 	Packet packet;
 	if (!m_socket || !m_socket->is_open()) {
 		spdlog::error("Failede receive message: Socket was not opened");
@@ -39,13 +40,12 @@ Packet PeerFacadeImpl::receive() {
 		spdlog::error("receive_from failed: {} (value {})", ec.message(), ec.value());
 		return packet;
 	}
-  packet.sender.host = remoteEndpoint.address().to_string();
-  packet.sender.port = remoteEndpoint.port();
+	packet.sender.host = remoteEndpoint.address().to_string();
+	packet.sender.port = remoteEndpoint.port();
 	spdlog::info("Received packet with size {}", packet.size);
 
 	return packet;
 }
-
 
 
 void DummyPeerFacade::send(Packet packet, Peer peer)
@@ -65,25 +65,22 @@ Packet DummyPeerFacade::receive()
 	Packet packet{.content = nullptr, .size = 0};
 	spdlog::info("Received packet with size {}", packet.size);
 	return packet;
-} 
-	
-uint8_t* Medae::Network::calcChecksum(const Packet& packet, uint16_t checksumLength) {
-	auto* checksum = new uint8_t[checksumLength]; //NOLINT
+}
+
+uint8_t* Medae::Network::calcChecksum(const Packet& packet, uint16_t checksumLength)
+{
+	auto* checksum = new uint8_t[checksumLength]; // NOLINT
 	for (uint16_t i = 0; i < checksumLength; ++i) {
-		for (uint16_t j =  0; j < packet.size; j += checksumLength) {
+		for (uint16_t j = 0; j < packet.size; j += checksumLength) {
 			checksum[i] += packet.content[j]; // NOLINT
 		}
 	}
 	return checksum;
 }
-	
-void Medae::Network::addChecksum(Packet& packet, uint16_t checksumLength) {
-	packet.size -= checksumLength+1;
-	memcpy(
-		packet.content,
-		calcChecksum(packet, checksumLength),
-		checksumLength
-	);
-	packet.size += checksumLength+1;
-}
 
+void Medae::Network::addChecksum(Packet& packet, uint16_t checksumLength)
+{
+	packet.size -= checksumLength + 1;
+	memcpy(packet.content, calcChecksum(packet, checksumLength), checksumLength);
+	packet.size += checksumLength + 1;
+}

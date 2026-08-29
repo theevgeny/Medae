@@ -1,20 +1,15 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
 
-namespace Medae::Encryption {
+#include <Utils/Compression.hpp>
 
-	struct Data { // NOLINT
-		uint8_t* content;
-		uint16_t size;
-	};
+namespace Medae::Utils {
 
-	using PublicKey = std::string;
-	using PrivateKey = std::string;
+using PublicKey = std::string;
+using PrivateKey = std::string;
 
-	Data encrypt(Data data, PublicKey key);
-	Data decrypt(Data data, PrivateKey key);
+Data encrypt(Data data, PublicKey key);
+Data decrypt(Data data, PrivateKey key);
 
-}
-
+} // namespace Medae::Utils

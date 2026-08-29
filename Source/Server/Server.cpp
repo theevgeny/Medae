@@ -27,7 +27,9 @@ void Server::loop() // NOLINT
 		while (true) {
 			Network::Packet packet = m_networkFacade->receive();
 			processPacket(packet);
-			if (!loop) { break; }
+			if (!loop) {
+				break;
+			}
 		}
 	});
 
@@ -58,7 +60,7 @@ Server::Server(const std::shared_ptr<ArgumentsParser>& argumentParser)
 	m_argumentParser = argumentParser;
 	m_properies = std::make_shared<PropertiesConfig>(m_argumentParser->getPropertiesFilePath());
 	spdlog::set_level(m_properies->getLogLevel());
-	
+
 	m_networkFacade = std::make_shared<Network::PeerFacadeImpl>();
 }
 
