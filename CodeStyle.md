@@ -5,7 +5,7 @@
 This document defines the code formatting and style rules for C++ to ensure uniformity, readability, and maintainability of the project. The guidelines are based on best practices and adapted to the project's needs.
 
 **Mandatory:** All developers are required to follow the rules outlined here. Exceptions are permitted only with the approval of the project architect.
-**Language Standard:** C++20 (with a transition to C++23 in the near future).
+**Language Standard:** C++23
 
 ---
 
@@ -23,7 +23,7 @@ This document defines the code formatting and style rules for C++ to ensure unif
 
 - Use **tabs** for indentation. Using spaces for indentation is prohibited.
 - Indentation for blocks inside namespaces, classes, functions, loops, and conditionals is required.
-- Maximum line length is **100 characters**. Exceptions: long lines in comments or macros, but they must be justified.
+- Maximum line length is **120 characters**. Exceptions: long lines in comments or macros, but they must be justified.
 - The opening brace for a function, class, enumeration, namespace, etc. definition is placed on a **new line**.
 - The opening brace for control constructs (`if`, `for`, `while`, `switch`) is placed on the **same line**, with a space before it.
 

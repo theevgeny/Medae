@@ -1,5 +1,8 @@
 all: build
 
+build2:
+	mkdir -p build && cd build && cmake .. && make -j 2 && cd ..
+
 build:
 	mkdir -p build && cd build && cmake .. && make -j 8 && cd ..
 

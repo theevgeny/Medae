@@ -1,63 +1,43 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
-#include <unordered_set>
+#include <vector>
 
-#include "UI/Render.hpp"
+#include "UI/Types.hpp"
+#include "Utils/Macros.hpp"
 
 namespace Medae::UI {
-static const uint16_t MAX_CONTROLS_DEPTH = 20;
-
 class Panel
 {
   public:
-	enum class Anchor
-	{
-		TOP_LEFT,
-		TOP_MIDDLE,
-		TOP_RIGHT,
-		LEFT_MIDDLE,
-		CENTER,
-		RIGHT_MIDDLE,
-		BOTTOM_LEFT,
-		BOTTOM_MIDDLE,
-		BOTTOM_RIGHT
-	};
+	explicit Panel(const ElementData& elementData);
+	explicit Panel(ElementData&& elementData);
+	Panel() = default;
 
-	enum class AxisType
-	{
-		PX,
-		PERCANT_PARENT_X,
-		PERCANT_PARENT_Y,
-		PERCANT_THIS_X,
-		PERCANT_THIS_Y,
-		PERCANT_CHILD_X,
-		PERCANT_CHILD_Y,
-		PERCANT_BIGGEST_CHILD_X,
-		PERCANT_BIGGEST_CHILD_Y
-	};
+	NODIS ElementData& getElementData();
+	NODIS const std::weak_ptr<Panel>& getParent();
+	NODIS uint16_t getVisible() const;
+	NODIS uint16_t getEnabled() const;
+	NODIS uint16_t getAnchorTo() const;
+	NODIS uint16_t getAnchorFrom() const;
 
-	void render(const std::shared_ptr<Render>& render, int index) // NOLINT this recursy not infinity
-	{
-		if (index > MAX_CONTROLS_DEPTH) {
-			return;
-		}
-		if (m_controls && render) {
-			for (auto it = m_controls->begin(); it != m_controls->end();) {
-				if (*it) {
-					(*it)->render(render, index + 1);
-					++it;
-				} else {
-					it = m_controls->erase(it);
-				}
-			}
-		}
-	}
+	Panel& setVisible(uint16_t value);
+	Panel& setEnabled(uint16_t value);
+	Panel& setAnchorFrom(uint16_t anchor);
+	Panel& setAnchorTo(uint16_t anchor);
+	Panel& setElementData(const ElementData& elementData);
+	Panel& addControl(const std::shared_ptr<Panel>& control);
+	Panel& setParent(const std::shared_ptr<Panel>& parent);
+	Panel& forEachControls(void (*consumer)(const std::weak_ptr<Panel>&));
 
   private:
-	std::shared_ptr<std::unordered_set<std::shared_ptr<Panel>>> m_controls =
-		std::make_shared<std::unordered_set<std::shared_ptr<Panel>>>();
+	std::weak_ptr<Panel> m_parent;
+	std::vector<std::weak_ptr<Panel>> m_controls;
+	uint16_t m_from = Anchor::CENTER;
+	uint16_t m_to = Anchor::CENTER;
+	ElementData m_data;
+	uint16_t m_visible = 1;
+	uint16_t m_enabled = 1;
 	// bool operator==(const Element& other) {}
 };
 } // namespace Medae::UI

@@ -2,4 +2,5 @@ Build/
 build/
 .clangd
 .cache/
-Task.md
+properties.md
+resources/

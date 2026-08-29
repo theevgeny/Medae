@@ -1,8 +1,0 @@
-[common]
-log_level = 'DEBUG'
-max_players_count = 50
-motd = 'Medae Server'
-
-[network]
-address = '0.0.0.0'
-port = 30665
