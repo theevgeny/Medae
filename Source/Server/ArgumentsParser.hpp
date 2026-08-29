@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "Util/Macros.hpp"
+#include "Utils/Macros.hpp"
 
 namespace Medae::Server {
 

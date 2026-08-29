@@ -66,4 +66,24 @@ Packet DummyPeerFacade::receive()
 	spdlog::info("Received packet with size {}", packet.size);
 	return packet;
 } 
+	
+uint8_t* Medae::Network::calcChecksum(const Packet& packet, uint16_t checksumLength) {
+	auto* checksum = new uint8_t[checksumLength]; //NOLINT
+	for (uint16_t i = 0; i < checksumLength; ++i) {
+		for (uint16_t j =  0; j < packet.size; j += checksumLength) {
+			checksum[i] += packet.content[j]; // NOLINT
+		}
+	}
+	return checksum;
+}
+	
+void Medae::Network::addChecksum(Packet& packet, uint16_t checksumLength) {
+	packet.size -= checksumLength+1;
+	memcpy(
+		packet.content,
+		calcChecksum(packet, checksumLength),
+		checksumLength
+	);
+	packet.size += checksumLength+1;
+}
 

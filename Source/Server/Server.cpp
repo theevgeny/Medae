@@ -49,11 +49,6 @@ void Server::processPacket(Network::Packet packet) // NOLINT
 	spdlog::debug("Packet with size {} proceed", packet.size);
 }
 
-void Server::processConnection(Network::PeerID peerID) // NOLINT
-{
-	spdlog::debug("Peer with peerID {} proceed", peerID);
-}
-
 Server::Server(const std::shared_ptr<ArgumentsParser>& argumentParser)
 {
 	if (!argumentParser) {

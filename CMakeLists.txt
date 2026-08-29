@@ -31,6 +31,7 @@ find_package(OpenAL 1.25.2 REQUIRED)
 find_package(glm 1.0.3 REQUIRED)
 find_package(spdlog 1.17.0 REQUIRED)
 find_package(EnTT 4.0.0 REQUIRED)
+find_package(zstd 1.5.7 REQUIRED)
 
 glad_add_library(glad_gl_core_43 STATIC REPRODUCIBLE API gl:core=4.6)
 
@@ -38,14 +39,16 @@ add_executable(server
 	Source/Server/Main.cpp
 
 	Source/Server/Server.cpp
-
+	Source/Server/Network.cpp
 	Source/Server/PropertiesConfig.cpp
 	Source/Server/ArgumentsParser.cpp
 
 	Source/Network/Network.cpp
+
+	Source/Utils/Compression.cpp
 )
 
-target_link_libraries(server PRIVATE Boost::asio Boost::filesystem Boost::program_options tomlplusplus spdlog::spdlog)
+target_link_libraries(server PRIVATE Boost::asio Boost::filesystem Boost::program_options tomlplusplus spdlog::spdlog zstd::libzstd)
 
 target_include_directories(server PRIVATE Source)
 
@@ -59,7 +62,7 @@ add_executable(client
 	Source/Network/Network.cpp
 )
 
-target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT::EnTT Jolt OpenAL::OpenAL Boost::filesystem Boost::asio Boost::program_options spdlog::spdlog)
+target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT::EnTT Jolt OpenAL::OpenAL Boost::filesystem Boost::asio Boost::program_options spdlog::spdlog zstd::libzstd)
 
 target_include_directories(client PRIVATE Source)
 

@@ -17,7 +17,6 @@ class Server
 
   private:
 	void processPacket(Network::Packet packet);
-	void processConnection(Network::PeerID peerID);
 
 	std::shared_ptr<PropertiesConfig> m_properies;
 	std::shared_ptr<ArgumentsParser> m_argumentParser;

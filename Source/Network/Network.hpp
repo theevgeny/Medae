@@ -3,15 +3,23 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 #include <boost/asio.hpp>
 
 namespace Medae::Network {
 
+	enum Codes : uint8_t {
+		FILE_SENDING = 0x00,
+		ENCRYPTED_FILE_SENDING = 0x01,
+	};
+
 	struct Peer { // NOLINT
 		std::string host;
 		uint16_t port;
+				
+		bool operator==(const Peer& other) const {
+			return host == other.host && port == other.port;
+		}
 	};
 
 	struct Packet { // NOLINT
@@ -20,7 +28,9 @@ namespace Medae::Network {
 		Peer sender;
 	};
 
-	using PeerID = uint16_t;
+	void addChecksum(Packet& packet, uint16_t checksumLength); // Create packet with size (info_size+checksumLength)
+	
+	uint8_t* calcChecksum(const Packet& packet, uint16_t checksumLength);
 
 	class PeerFacade {
 	public:
@@ -40,7 +50,6 @@ namespace Medae::Network {
 	private:
 		std::unique_ptr<udp::socket> m_socket;
 		boost::asio::io_context m_ioContext;
-		std::unordered_map<PeerID, udp::endpoint> m_endpoints;
 		const uint16_t MAX_PACKET_SIZE = 1024; 
 	}; 
 
@@ -52,5 +61,17 @@ namespace Medae::Network {
 		Packet receive() override;
 	};
 
+}
+
+namespace std {
+	template<>
+	struct hash<Medae::Network::Peer> {
+		std::size_t operator()(const Medae::Network::Peer& p) const noexcept {
+			std::size_t h1 = std::hash<std::string>{}(p.host);
+			std::size_t h2 = std::hash<uint16_t>{}(p.port);
+				
+			return h1 ^ (h2 << 1U);
+		}
+	};
 }
 

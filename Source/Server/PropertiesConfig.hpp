@@ -5,7 +5,7 @@
 
 #include <spdlog/common.h>
 
-#include "Util/Macros.hpp"
+#include "Utils/Macros.hpp"
 
 namespace Medae::Server {
 
