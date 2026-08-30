@@ -43,21 +43,25 @@ const std::weak_ptr<Panel>& Panel::getParent()
 	return m_parent;
 }
 
-NODIS uint16_t Panel::getVisible() const
+uint16_t Panel::getVisible() const
 {
 	return m_visible;
 }
-NODIS uint16_t Panel::getEnabled() const
+uint16_t Panel::getEnabled() const
 {
 	return m_enabled;
 }
-NODIS uint16_t Panel::getAnchorTo() const
+uint16_t Panel::getAnchorTo() const
 {
 	return m_to;
 }
-NODIS uint16_t Panel::getAnchorFrom() const
+uint16_t Panel::getAnchorFrom() const
 {
 	return m_from;
+}
+uint16_t Panel::getLayer() const
+{
+	return m_layer;
 }
 
 Panel& Panel::setVisible(uint16_t value)
@@ -70,13 +74,18 @@ Panel& Panel::setEnabled(uint16_t value)
 	m_enabled = value;
 	return *this;
 }
-Panel& Panel::setAnchorFrom(uint16_t anchor)
+Panel& Panel::setAnchorTo(uint16_t value)
 {
-	m_from = anchor;
+	m_to = value;
 	return *this;
 }
-Panel& Panel::setAnchorTo(uint16_t anchor)
+Panel& Panel::setAnchorFrom(uint16_t value)
 {
-	m_to = anchor;
+	m_from = value;
+	return *this;
+}
+Panel& Panel::setLayer(uint16_t value)
+{
+	m_layer = value;
 	return *this;
 }

@@ -1,0 +1,31 @@
+#include "ClickHandler.hpp"
+
+using namespace Medae::UI;
+
+ClickHandler& ClickHandler::setCallBackOnRightMouseClick(std::function<void()> callback)
+{
+	if (callback) {
+		m_callBackOnRightClick = std::move(callback);
+	}
+	return *this;
+}
+ClickHandler& ClickHandler::setCallBackOnLeftMouseClick(std::function<void()> callback)
+{
+	if (callback) {
+		m_callBackOnLeftClick = std::move(callback);
+	}
+	return *this;
+}
+
+void ClickHandler::onRightMouseClick()
+{
+	if (m_callBackOnRightClick) {
+		m_callBackOnRightClick();
+	}
+}
+void ClickHandler::onLeftMouseClick()
+{
+	if (m_callBackOnLeftClick) {
+		m_callBackOnLeftClick();
+	}
+}

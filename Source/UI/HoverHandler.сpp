@@ -1,0 +1,31 @@
+#include "HoverHandler.hpp"
+
+using namespace Medae::UI;
+
+ClickHandler& ClickHandler::setCallBackOnHoverEnter(std::function<void()> callback)
+{
+	if (callback) {
+		m_callBackOnEnter = std::move(callback);
+	}
+	return *this;
+}
+ClickHandler& ClickHandler::setCallBackOnHoverLeave(std::function<void()> callback)
+{
+	if (callback) {
+		m_callBackOnLeave = std::move(callback);
+	}
+	return *this;
+}
+
+void ClickHandler::onEnter()
+{
+	if (m_callBackOnEnter) {
+		m_callBackOnEnter();
+	}
+}
+void ClickHandler::onLeave()
+{
+	if (m_callBackOnLeave) {
+		m_callBackOnLeave();
+	}
+}

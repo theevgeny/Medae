@@ -6,6 +6,18 @@
 
 namespace Medae::UI {
 
+enum LabelType
+{
+	TEXT,
+	TRANSLATE
+};
+
+enum ImageType
+{
+	PATH,
+	URL
+};
+
 enum Anchor : uint8_t
 {
 	TOP_LEFT,

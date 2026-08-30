@@ -15,9 +15,9 @@ Panel& Image::setTextureType(uint16_t value)
 	m_type = value;
 	return *this;
 }
-Panel& Image::setTexture(const std::string& texture)
+Panel& Image::setTexture(const std::string& value)
 {
-	m_texture = texture;
+	m_texture = value;
 	return *this;
 }
 

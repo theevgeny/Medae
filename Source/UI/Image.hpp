@@ -3,11 +3,6 @@
 #include "UI/Panel.hpp"
 
 namespace Medae::UI {
-enum TextureType
-{
-	PATH,
-	URL
-};
 
 class Image : Panel
 {
@@ -19,10 +14,10 @@ class Image : Panel
 	NODIS std::string getTexture() const;
 
 	Panel& setTextureType(uint16_t value);
-	Panel& setTexture(const std::string& texture);
+	Panel& setTexture(const std::string& value);
 
   private:
-	uint16_t m_type = TextureType::PATH;
+	uint16_t m_type = ImageType::PATH;
 	std::string m_texture;
 };
 } // namespace Medae::UI

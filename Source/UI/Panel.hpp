@@ -20,11 +20,13 @@ class Panel
 	NODIS uint16_t getEnabled() const;
 	NODIS uint16_t getAnchorTo() const;
 	NODIS uint16_t getAnchorFrom() const;
+	NODIS uint16_t getLayer() const;
 
 	Panel& setVisible(uint16_t value);
 	Panel& setEnabled(uint16_t value);
-	Panel& setAnchorFrom(uint16_t anchor);
-	Panel& setAnchorTo(uint16_t anchor);
+	Panel& setAnchorTo(uint16_t value);
+	Panel& setAnchorFrom(uint16_t value);
+	Panel& setLayer(uint16_t value);
 	Panel& setElementData(const ElementData& elementData);
 	Panel& addControl(const std::shared_ptr<Panel>& control);
 	Panel& setParent(const std::shared_ptr<Panel>& parent);
@@ -38,6 +40,6 @@ class Panel
 	ElementData m_data;
 	uint16_t m_visible = 1;
 	uint16_t m_enabled = 1;
-	// bool operator==(const Element& other) {}
+	uint16_t m_layer = 0;
 };
 } // namespace Medae::UI

@@ -4,13 +4,13 @@ A game based on the concept of no built-in content. Content is created by develo
 #
 
 # Road Map
-[ ] - Base network (ping and connect with encryption and file sending)
-[ ] - UI #13
-[ ] - Renderer on OpenGL
-[ ] - EnTT base components
-[ ] - JoltPhysics integration
-[ ] - Game loop with dt
-[ ] - First WASM API
+- [ ] Base network (ping and connect with encryption and file sending)
+- [ ] UI #13
+- [ ] Renderer on OpenGL
+- [ ] EnTT base components
+- [ ] JoltPhysics integration
+- [ ] Game loop with dt
+- [ ] First WASM API
 
 ## Used external libraries
 
