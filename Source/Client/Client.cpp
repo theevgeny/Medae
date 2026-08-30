@@ -11,7 +11,6 @@ using namespace Medae::Client;
 Client::Client(std::unique_ptr<Medae::Graphics::FacadeInterface> graphicsFacade)
 	: m_graphicsFacade(std::move(graphicsFacade))
 {
-
 }
 
 void Client::loop()
@@ -19,7 +18,6 @@ void Client::loop()
 	m_graphicsFacade->create_window("Medae client", 1920, 1080);
 	while (true) {
 		m_graphicsFacade->render();
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000/FPS));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
 	}
 }
-
