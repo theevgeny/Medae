@@ -1,0 +1,8 @@
+[common]
+log_level = 'INFO'
+max_players_count = 50
+motd = 'Medae Server'
+
+[network]
+address = '0.0.0.0'
+port = 30665

@@ -11,6 +11,7 @@
 #include "Network/Network.hpp"
 #include "Server/ArgumentsParser.hpp"
 #include "Server/PropertiesConfig.hpp"
+#include "sodium/core.h"
 
 using namespace Medae::Server;
 
@@ -18,7 +19,7 @@ void Server::loop() // NOLINT
 {
 	spdlog::info("Successfully started");
 
-	m_networkFacade->initSocket(Network::Peer(m_properies->getAddress(), m_properies->getPort()));
+	m_networkFacade->init(Network::Peer{m_properies->getAddress(), m_properies->getPort()});
 
 	bool loop = true;
 
@@ -52,6 +53,15 @@ void Server::processPacket(Network::Packet packet) // NOLINT
 
 Server::Server(const std::shared_ptr<ArgumentsParser>& argumentParser) : m_argumentParser(argumentParser)
 {
+	if (auto code = sodium_init(); code < 0) {
+		spdlog::critical("Sodium initialization failed with code {}", code);
+	}
+
+	if (!argumentParser) {
+		throw std::runtime_error("NullPointerException" FILEPOINT "\n"
+								 "argumentParser is null");
+	}
+	m_argumentParser = argumentParser;
 	m_properies = std::make_shared<PropertiesConfig>(m_argumentParser->getPropertiesFilePath());
 	spdlog::set_level(m_properies->getLogLevel());
 

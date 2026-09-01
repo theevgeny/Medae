@@ -25,7 +25,7 @@ PeerID ConnectionsManager::initOrGetPeer(const Network::Peer& peer)
 	return 0;
 }
 
-Medae::Utils::PublicKey ConnectionsManager::getPeerKey(PeerID peerID)
+Medae::Network::PublicKey ConnectionsManager::getPeerKey(PeerID peerID)
 {
 	return m_peerKeys[peerID];
 }
@@ -73,11 +73,7 @@ void FileSender::sendFile(const std::string& path, const Network::Peer& peer)
 
 	Utils::compress(compressedData);
 
-	Network::Packet packet{
-		.content = new uint8_t[compressedData.size + CHECKSUM_LENGTH + 1],
-	};
-
-	packet.size = compressedData.size + CHECKSUM_LENGTH + 1;
+	Network::Packet packet(compressedData.size + CHECKSUM_LENGTH + 1);
 
 	packet.content[packet.size - 1] = Network::Codes::FILE_SENDING;
 
@@ -86,4 +82,4 @@ void FileSender::sendFile(const std::string& path, const Network::Peer& peer)
 	m_peerFacade->send(packet, peer);
 }
 
-void FileSender::sendEncryptedFile(const std::string& path, const Network::Peer& peer, const Utils::PublicKey& key) {}
+void FileSender::sendEncryptedFile(const std::string& path, const Network::Peer& peer, const Network::PublicKey& key) {}

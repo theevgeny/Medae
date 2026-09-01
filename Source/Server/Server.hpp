@@ -20,7 +20,7 @@ class Server
 
 	std::shared_ptr<PropertiesConfig> m_properies;
 	std::shared_ptr<ArgumentsParser> m_argumentParser;
-	std::shared_ptr<Medae::Network::PeerFacade> m_networkFacade;
+	std::shared_ptr<Network::PeerFacade> m_networkFacade;
 };
 
 }; // namespace Medae::Server
