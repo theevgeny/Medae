@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/filesystem/path.hpp>
 #include <string>
 
 #include <spdlog/common.h>
@@ -33,6 +34,7 @@ class PropertiesConfig
 	NODIS spdlog::level::level_enum getLogLevel() const;
 	NODIS uint16_t getPort() const;
 	NODIS uint16_t getMaxPlayersCount() const;
+	NODIS boost::filesystem::path getClientFilesPath() const;
 
   private:
 	static void createDefaultPropertiesFile(const std::string& path);
@@ -42,6 +44,7 @@ class PropertiesConfig
 	uint16_t m_maxPlayersCount = 50;
 	std::string m_motd = "Medae Server";
 	spdlog::level::level_enum m_logLevel = spdlog::level::info;
+	boost::filesystem::path m_clientFilesPath;
 };
 
 } // namespace Medae::Server

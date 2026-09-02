@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <set>
 #include <shared_mutex>
 #include <string>
@@ -56,6 +57,7 @@ struct Packet
 		capacity = newCapacity;
 		auto* newContent = new uint8_t[newCapacity];
 		memcpy(newContent, content, size);
+		delete[] content;
 		content = newContent;
 	}
 };
@@ -75,7 +77,7 @@ class PeerFacade
   public:
 	virtual ~PeerFacade() = default;
 	virtual void init(Peer peer) = 0;
-	virtual void send(Packet packet, Peer peer, PublicKey key = {}, bool nack = false) = 0;
+	virtual void send(Packet packet, Peer peer, std::optional<PublicKey> key = std::nullopt, bool nack = false) = 0;
 	virtual Packet receive() = 0;
 };
 
@@ -88,7 +90,7 @@ class PeerFacadeImpl : public PeerFacade
   public:
 	~PeerFacadeImpl() override = default;
 	void init(Peer peer) override;
-	void send(Packet packet, Peer peer, PublicKey key = {}, bool nack = false) override;
+	void send(Packet packet, Peer peer, std::optional<PublicKey> key = std::nullopt, bool nack = false) override;
 	Packet receive() override;
 
   private:
@@ -111,7 +113,7 @@ class DummyPeerFacade : public PeerFacade
   public:
 	~DummyPeerFacade() override = default;
 	void init(Peer peer) override;
-	void send(Packet packet, Peer peer, PublicKey key = {}, bool nack = false) override;
+	void send(Packet packet, Peer peer, std::optional<PublicKey> key = std::nullopt, bool nack = false) override;
 	Packet receive() override;
 };
 

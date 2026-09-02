@@ -1,5 +1,7 @@
 #include "Server.hpp"
 
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -10,6 +12,7 @@
 
 #include "Network/Network.hpp"
 #include "Server/ArgumentsParser.hpp"
+#include "Server/Network.hpp"
 #include "Server/PropertiesConfig.hpp"
 #include "sodium/core.h"
 
@@ -17,37 +20,36 @@ using namespace Medae::Server;
 
 void Server::loop() // NOLINT
 {
-	spdlog::info("Successfully started");
-
-	m_networkFacade->init(Network::Peer{m_properies->getAddress(), m_properies->getPort()});
+	m_networkFacade->init(Network::Peer{m_properties->getAddress(), m_properties->getPort()});	
+	
+	m_connectionsManager = std::make_unique<ConnectionsManager>(weak_from_this());
 
 	bool loop = true;
+	
+	spdlog::info("Successfully started");
 
 	std::thread packetsHandling([&]() {
-		while (true) {
+		while (loop) {
 			Network::Packet packet = m_networkFacade->receive();
 			processPacket(packet);
-			if (!loop) {
-				break;
-			}
 		}
 	});
 
-	while (true) {
+	while (loop) {
 		std::cout << "Type command (exit): ";
 		std::string command;
 		std::cin >> command;
 		if (command == "exit") {
-			break;
+			loop = false;
 		}
 	}
-	loop = false;
 	packetsHandling.join();
 	spdlog::info("Successfully stopped");
 }
 
 void Server::processPacket(Network::Packet packet) // NOLINT
 {
+	m_connectionsManager->initOrGetPeer(packet.sender);
 	spdlog::debug("Packet with size {} proceed", packet.size);
 }
 
@@ -62,13 +64,18 @@ Server::Server(const std::shared_ptr<ArgumentsParser>& argumentParser) : m_argum
 								 "argumentParser is null");
 	}
 	m_argumentParser = argumentParser;
-	m_properies = std::make_shared<PropertiesConfig>(m_argumentParser->getPropertiesFilePath());
-	spdlog::set_level(m_properies->getLogLevel());
+	m_properties = std::make_shared<PropertiesConfig>(m_argumentParser->getPropertiesFilePath());
+	spdlog::set_level(m_properties->getLogLevel());
 
 	m_networkFacade = std::make_shared<Network::PeerFacadeImpl>();
 }
 
-const std::shared_ptr<PropertiesConfig>& Medae::Server::Server::getProperies() const
+std::shared_ptr<PropertiesConfig> Medae::Server::Server::getProperies() const
 {
-	return m_properies;
+	return m_properties;
+}
+
+std::shared_ptr<Medae::Network::PeerFacade> Medae::Server::Server::getNetworkFacade() const
+{
+	return m_networkFacade;
 }

@@ -18,10 +18,12 @@ struct Data
 	uint16_t size;
 };
 
+class Server;
+
 class ConnectionsManager
 {
   public:
-	explicit ConnectionsManager(PeerID maxConnectionsCount);
+	explicit ConnectionsManager(std::weak_ptr<Server> server);
 	PeerID initOrGetPeer(const Network::Peer& peer);
 	[[nodiscard]] Network::PublicKey getPeerKey(PeerID peerID);
 
@@ -29,7 +31,7 @@ class ConnectionsManager
 	std::shared_ptr<Network::PeerFacade> m_peerFacade;
 	std::unordered_map<Network::Peer, PeerID> m_peerIDs;
 	std::map<PeerID, Network::PublicKey> m_peerKeys;
-	PeerID m_maxConnectionsCount;
+	std::weak_ptr<Server> m_server;
 };
 
 class FileSender

@@ -1,5 +1,8 @@
 [common]
-log_level = 'INFO'
+log_level = 'DEBUG'
+
+[game]
+client_files_path = './client/'
 max_players_count = 50
 motd = 'Medae Server'
 

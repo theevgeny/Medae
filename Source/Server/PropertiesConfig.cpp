@@ -1,5 +1,6 @@
 #include "PropertiesConfig.hpp"
 
+#include <boost/filesystem/path.hpp>
 #include <ios>
 #include <iostream>
 
@@ -18,17 +19,21 @@ PropertiesConfig::PropertiesConfig(const std::string& path)
 		toml::table tbl;
 		try {
 			tbl = toml::parse_file(path);
-			auto motd = tbl["common"]["motd"].value_exact<std::string>();
-			if (motd.has_value()) {
-				m_motd = *motd;
-			}
-			auto maxPlayersCount = tbl["common"]["max_players_count"].value_exact<int64_t>();
-			if (maxPlayersCount.has_value()) {
-				m_maxPlayersCount = static_cast<uint16_t>(*maxPlayersCount);
-			}
 			auto logLevel = tbl["common"]["log_level"].value_exact<std::string>();
 			if (logLevel.has_value()) {
 				m_logLevel = getLogLevelFromString(*logLevel);
+			}
+			auto clientFilesPath = tbl["game"]["client_files_path"].value_exact<std::string>();
+			if (clientFilesPath.has_value()) {
+				m_clientFilesPath = boost::filesystem::path(*clientFilesPath);
+			}
+			auto motd = tbl["game"]["motd"].value_exact<std::string>();
+			if (motd.has_value()) {
+				m_motd = *motd;
+			}
+			auto maxPlayersCount = tbl["game"]["max_players_count"].value_exact<int64_t>();
+			if (maxPlayersCount.has_value()) {
+				m_maxPlayersCount = static_cast<uint16_t>(*maxPlayersCount);
 			}
 			auto address = tbl["network"]["address"].value_exact<std::string>();
 			if (address.has_value()) {
@@ -53,13 +58,16 @@ void PropertiesConfig::createDefaultPropertiesFile(const std::string& path)
 {
 	toml::table tbl;
 	toml::table common;
+	toml::table game;
 	toml::table network;
-	common.insert_or_assign("max_players_count", 50);
-	common.insert_or_assign("motd", "Medae Server");
-	common.insert_or_assign("log_level", "INFO");
-	network.insert_or_assign("port", 30665);
-	network.insert_or_assign("address", "0.0.0.0");
+	common	.insert_or_assign("log_level", "INFO");
+	game		.insert_or_assign("motd", "Medae Server");
+	game		.insert_or_assign("max_players_count", 50);
+	game		.insert_or_assign("client_files_path", "./client/");
+	network	.insert_or_assign("port", 30665);
+	network	.insert_or_assign("address", "0.0.0.0");
 	tbl.insert_or_assign("common", common);
+	tbl.insert_or_assign("game", game);
 	tbl.insert_or_assign("network", network);
 	std::ofstream file{path, std::ios_base::out | std::ios_base::trunc};
 	if (file.is_open()) {
@@ -87,4 +95,8 @@ uint16_t PropertiesConfig::getPort() const
 uint16_t PropertiesConfig::getMaxPlayersCount() const
 {
 	return m_maxPlayersCount;
+}
+boost::filesystem::path PropertiesConfig::getClientFilesPath() const
+{
+	return m_clientFilesPath;
 }

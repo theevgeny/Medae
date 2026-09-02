@@ -50,21 +50,21 @@ void PeerFacadeImpl::sendWithNack(Packet packet, const Peer& peer) // NOLINT
 	}, m_lastNack);
 }
 
-void PeerFacadeImpl::send(Packet packet, Peer peer, PublicKey key, bool nack) // NOLINT
+void PeerFacadeImpl::send(Packet packet, Peer peer, std::optional<PublicKey> key, bool nack) // NOLINT
 {
-	if (!key.empty()) {
+	if (key.has_value()) {
 		packet.size--;
 		const uint8_t code =	packet.content[packet.size] | 0x40U;
-		packet = Packet(genBufferEncrypted(packet, key));
+		packet = Packet(genBufferEncrypted(packet, key.value()));
 		packet.append(&code, 1);
 	}
 	if (nack) {
 		sendWithNack(packet, peer);
 		return;
 	}
+	spdlog::debug("Send starting");
 	udp::resolver resolver(m_ioContext);
-	m_socket->open(udp::v4());
-	auto endpoint = *resolver.resolve(udp::v4(), fmt::format("{}:{}", peer.host, peer.port), "server").begin();
+	auto endpoint = *resolver.resolve(udp::v4(), peer.host, std::to_string(peer.port)).begin();
 	m_socket->send_to(boost::asio::buffer(packet.content, packet.size), endpoint);
 	spdlog::debug("Sent packet with size {}", packet.size);
 }
@@ -80,7 +80,7 @@ void PeerFacadeImpl::init(Peer peer)
 
 Packet PeerFacadeImpl::receive()
 {
-	Packet packet;
+	Packet packet(MAX_PACKET_SIZE);
 	if (!m_socket || !m_socket->is_open()) {
 		spdlog::error("Failede receive message: Socket was not opened");
 		return packet;
@@ -100,7 +100,7 @@ Packet PeerFacadeImpl::receive()
 }
 
 
-void DummyPeerFacade::send(Packet packet, Peer peer, PublicKey key, bool nack) // NOLINT
+void DummyPeerFacade::send(Packet packet, Peer peer, std::optional<PublicKey> key, bool nack) // NOLINT
 {
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	spdlog::info("Packet with size {} was sent to peer {}:{}", packet.size, peer.host, peer.port);
