@@ -67,6 +67,8 @@ add_executable(client
 	Source/Graphics/Graphics.cpp
 
 	Source/Network/Network.cpp
+	
+	Source/Utils/Compression.cpp
 )
 
 target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT::EnTT Jolt OpenAL::OpenAL Boost::filesystem Boost::asio Boost::program_options spdlog::spdlog zstd::libzstd sodium)

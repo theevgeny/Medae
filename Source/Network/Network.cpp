@@ -1,18 +1,21 @@
 #include "Network.hpp"
+#include "Utils/Compression.hpp"
 
 #include <chrono>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
+#include <cmath>
 
 #include <spdlog/spdlog.h>
 #include <boost/asio/buffered_stream.hpp>
 #include <boost/asio/registered_buffer.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <sodium/crypto_box.h>
-#include <utility>
 
 using namespace Medae::Network;
 
@@ -27,45 +30,76 @@ boost::asio::const_buffer PeerFacadeImpl::genBufferEncrypted(const Packet& packe
 	return {buffer, outSize};
 }
 
-void PeerFacadeImpl::sendWithNack(Packet packet, const Peer& peer) // NOLINT
-{
+void PeerFacadeImpl::addNack(Packet& packet, const Peer& peer) {
 	m_nackMutex.lock();
 	for (; m_lastNack < std::numeric_limits<uint16_t>::max() && m_packetsForNack.count(m_lastNack) != 0; ++m_lastNack) { }
 	m_packetsForNack.emplace(m_lastNack);
 	m_nackMutex.unlock();
 	
-	packet.append(&(packet.content[packet.size-1]), 1);
-	packet.content[packet.size-1] |= 0x80U;
-	packet.content[packet.size-2] = m_lastNack;
-	this->send(packet, peer);
+	packet.size--;
+	auto command = packet.content[packet.size];
+	packet.setCapacity(std::min(packet.capacity+0UL, packet.size+3UL));
+	packet.append(reinterpret_cast<uint8_t*>(&m_lastNack), 2);
+	packet.append(&command, 1);
 
 	std::thread nackWait([this, packet, peer] (uint16_t lastNack) {
-		std::this_thread::sleep_for(NACK_WAIT);
-		m_nackMutex.lock_shared();
-		bool gotNack = this->m_packetsForNack.count(lastNack);
-		m_nackMutex.unlock_shared();
-		if (!gotNack) {
-			this->sendWithNack(packet, peer);
+		while (true) {
+			std::this_thread::sleep_for(NACK_WAIT);
+			m_nackMutex.lock_shared();
+			bool gotNack = this->m_packetsForNack.count(lastNack);
+			m_nackMutex.unlock_shared();
+			if (gotNack) { break; }
+			this->sendRaw(packet, peer);
 		}
 	}, m_lastNack);
 }
 
-void PeerFacadeImpl::send(Packet packet, Peer peer, std::optional<PublicKey> key, bool nack) // NOLINT
+uint8_t* PeerFacadeImpl::calcChecksum(const Packet& packet) const
 {
-	if (key.has_value()) {
-		packet.size--;
-		const uint8_t code =	packet.content[packet.size] | 0x40U;
-		packet = Packet(genBufferEncrypted(packet, key.value()));
-		packet.append(&code, 1);
+	auto* checksum = new uint8_t[CHECKSUM_LENGTH]; // NOLINT
+	for (uint16_t i = 0; i < CHECKSUM_LENGTH; ++i) {
+		for (uint16_t j = 0; j < packet.size; j += CHECKSUM_LENGTH) {
+			checksum[i] += packet.content[j]; // NOLINT
+		}
 	}
-	if (nack) {
-		sendWithNack(packet, peer);
-		return;
-	}
-	spdlog::debug("Send starting");
+	return checksum;
+}
+
+void PeerFacadeImpl::addChecksum(Packet& packet)
+{
+	packet.append(calcChecksum(packet), CHECKSUM_LENGTH);
+}
+
+void PeerFacadeImpl::sendRaw(const Packet& packet, const Peer& peer) {
 	udp::resolver resolver(m_ioContext);
 	auto endpoint = *resolver.resolve(udp::v4(), peer.host, std::to_string(peer.port)).begin();
 	m_socket->send_to(boost::asio::buffer(packet.content, packet.size), endpoint);
+}
+
+void PeerFacadeImpl::send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key) // NOLINT
+{
+	spdlog::debug("Package preparing");
+	if ((code & SendingFlags::ENCRYPTION) != 0) { 
+		if (!key.has_value()) {
+			spdlog::critical("No key, but encryption flag is on");
+			return;
+		}
+		packet = Packet(genBufferEncrypted(packet, key.value()));
+	}
+	if ((code & SendingFlags::COMPRESSION) != 0) {
+		Utils::Data data{packet.content, packet.size};
+		Utils::compress(data);
+		packet.size = data.size;
+	}
+	if ((code & SendingFlags::CHECKSUM) != 0) {
+		addChecksum(packet);
+	}
+	packet.append(&code, 1);
+	if ((code & SendingFlags::NACK) != 0) {
+		addNack(packet, peer);
+	}
+	spdlog::debug("Send starting");
+	sendRaw(packet, peer);
 	spdlog::debug("Sent packet with size {}", packet.size);
 }
 
@@ -100,7 +134,7 @@ Packet PeerFacadeImpl::receive()
 }
 
 
-void DummyPeerFacade::send(Packet packet, Peer peer, std::optional<PublicKey> key, bool nack) // NOLINT
+void DummyPeerFacade::send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key) // NOLINT
 {
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	spdlog::info("Packet with size {} was sent to peer {}:{}", packet.size, peer.host, peer.port);
@@ -119,20 +153,3 @@ Packet DummyPeerFacade::receive()
 	return packet;
 }
 
-uint8_t* Medae::Network::calcChecksum(const Packet& packet, uint16_t checksumLength)
-{
-	auto* checksum = new uint8_t[checksumLength]; // NOLINT
-	for (uint16_t i = 0; i < checksumLength; ++i) {
-		for (uint16_t j = 0; j < packet.size; j += checksumLength) {
-			checksum[i] += packet.content[j]; // NOLINT
-		}
-	}
-	return checksum;
-}
-
-void Medae::Network::addChecksum(Packet& packet, uint16_t checksumLength)
-{
-	packet.size -= checksumLength + 1;
-	memcpy(packet.content, calcChecksum(packet, checksumLength), checksumLength);
-	packet.size += checksumLength + 1;
-}

@@ -6,9 +6,11 @@
 #include <cstring>
 #include <memory>
 #include <optional>
+#include <map>
 #include <set>
 #include <shared_mutex>
 #include <string>
+#include <tuple>
 
 #include <sodium.h>
 #include <boost/asio.hpp>
@@ -18,8 +20,16 @@ namespace Medae::Network {
 
 enum Codes : uint8_t
 {
-	FILE_SENDING = 0x00,
-	ENCRYPTED_FILE_SENDING = 0x01,
+	FILES			= 0x00,
+	GAME_DATA	= 0x01,
+};
+
+enum SendingFlags : uint8_t
+{
+	COMPRESSION	= 0x80,
+	ENCRYPTION	= 0x40,
+	CHECKSUM		= 0x20,
+	NACK				=	0x10,
 };
 
 struct Peer
@@ -41,6 +51,10 @@ struct Packet
 		: size(size)
 		, content(new uint8_t[size])
 		, capacity(size) { }
+	explicit Packet(uint16_t size, uint16_t capacity)
+		: size(size)
+		, capacity(capacity)
+		, content(new uint8_t[size]) { }
 	explicit Packet(boost::asio::const_buffer buf) : size(buf.size()) {
 		memcpy(content, buf.data(), size);
 	}
@@ -68,16 +82,13 @@ using PrivateKey = std::array<uint8_t, crypto_box_SECRETKEYBYTES>;
 void encrypt(Packet& data, const PublicKey& key);
 void decrypt(Packet& data, const PrivateKey& key);
 
-void addChecksum(Packet& packet, uint16_t checksumLength); // Create packet with size (info_size+checksumLength)
-
-uint8_t* calcChecksum(const Packet& packet, uint16_t checksumLength);
-
 class PeerFacade
 {
   public:
 	virtual ~PeerFacade() = default;
 	virtual void init(Peer peer) = 0;
-	virtual void send(Packet packet, Peer peer, std::optional<PublicKey> key = std::nullopt, bool nack = false) = 0;
+	// Code is SendingFlags | Codes type
+	virtual void send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key = std::nullopt) = 0;
 	virtual Packet receive() = 0;
 };
 
@@ -90,18 +101,24 @@ class PeerFacadeImpl : public PeerFacade
   public:
 	~PeerFacadeImpl() override = default;
 	void init(Peer peer) override;
-	void send(Packet packet, Peer peer, std::optional<PublicKey> key = std::nullopt, bool nack = false) override;
+	void send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
 	Packet receive() override;
 
   private:
+	const uint16_t CHECKSUM_LENGTH = 6;
+
 	std::unique_ptr<udp::socket> m_socket;
 	boost::asio::io_context m_ioContext;
 	const uint16_t MAX_PACKET_SIZE = 1024;
 	std::set<uint16_t> m_packetsForNack;
 	uint16_t m_lastNack;
 	std::shared_mutex m_nackMutex;
-	
-	void sendWithNack(Packet packet, const Peer& peer);
+
+	// packet - ready for send packet
+	void addNack(Packet& packet, const Peer& peer);
+	void sendRaw(const Packet& packet, const Peer& peer);
+	void addChecksum(Packet& packet);
+	[[nodiscard]] uint8_t* calcChecksum(const Packet& packet) const;
 	static boost::asio::const_buffer genBufferEncrypted(const Packet& packet, const PublicKey& key);
 
 	PublicKey m_publicKey;
@@ -113,7 +130,7 @@ class DummyPeerFacade : public PeerFacade
   public:
 	~DummyPeerFacade() override = default;
 	void init(Peer peer) override;
-	void send(Packet packet, Peer peer, std::optional<PublicKey> key = std::nullopt, bool nack = false) override;
+	void send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
 	Packet receive() override;
 };
 
