@@ -3,13 +3,12 @@
 
 #include <chrono>
 #include <cstdint>
-#include <iterator>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <string>
 #include <thread>
 #include <utility>
-#include <cmath>
 
 #include <spdlog/spdlog.h>
 #include <boost/asio/buffered_stream.hpp>
@@ -19,18 +18,36 @@
 
 using namespace Medae::Network;
 
-boost::asio::const_buffer PeerFacadeImpl::genBufferEncrypted(const Packet& packet, const PublicKey& key)
+void PeerFacadeImpl::encrypt(Packet& packet, const PublicKey& key)
 {
 	const auto outSize = packet.size + crypto_box_SEALBYTES;
 
 	auto* buffer = new uint8_t[outSize];
 
-	crypto_box_seal(std::as_const(packet.content), buffer, packet.size, key.data());
+	if (crypto_box_seal(std::as_const(packet.content), buffer, packet.size, key.data()) != 0) {
+		spdlog::critical("Encryption failed");
+	}
 
-	return {buffer, outSize};
+	packet.content = buffer;
+	packet.size = outSize;
 }
 
-void PeerFacadeImpl::addNack(Packet& packet, const Peer& peer) {
+void PeerFacadeImpl::decrypt(Packet& packet)
+{
+	const auto outSize = packet.size - crypto_box_SEALBYTES;
+
+	auto* buffer = new uint8_t[outSize];
+
+	if (crypto_box_seal_open(buffer, std::as_const(packet.content), packet.size, m_publicKey.data(), m_privateKey.data()) != 0) {
+		spdlog::critical("Decryption failed");
+	}
+
+	packet.content = buffer;
+	packet.size = outSize;
+}
+
+void PeerFacadeImpl::addNack(Packet& packet)
+{
 	m_nackMutex.lock();
 	for (; m_lastNack < std::numeric_limits<uint16_t>::max() && m_packetsForNack.count(m_lastNack) != 0; ++m_lastNack) { }
 	m_packetsForNack.emplace(m_lastNack);
@@ -42,14 +59,14 @@ void PeerFacadeImpl::addNack(Packet& packet, const Peer& peer) {
 	packet.append(reinterpret_cast<uint8_t*>(&m_lastNack), 2);
 	packet.append(&command, 1);
 
-	std::thread nackWait([this, packet, peer] (uint16_t lastNack) {
+	std::thread nackWait([this, packet] (uint16_t lastNack) {
 		while (true) {
 			std::this_thread::sleep_for(NACK_WAIT);
 			m_nackMutex.lock_shared();
 			bool gotNack = this->m_packetsForNack.count(lastNack);
 			m_nackMutex.unlock_shared();
 			if (gotNack) { break; }
-			this->sendRaw(packet, peer);
+			this->sendRaw(packet);
 		}
 	}, m_lastNack);
 }
@@ -70,36 +87,41 @@ void PeerFacadeImpl::addChecksum(Packet& packet)
 	packet.append(calcChecksum(packet), CHECKSUM_LENGTH);
 }
 
-void PeerFacadeImpl::sendRaw(const Packet& packet, const Peer& peer) {
+void PeerFacadeImpl::sendRaw(const Packet& packet)
+{
 	udp::resolver resolver(m_ioContext);
-	auto endpoint = *resolver.resolve(udp::v4(), peer.host, std::to_string(peer.port)).begin();
+	auto endpoint = *resolver.resolve(udp::v4(), packet.peer.host, std::to_string(packet.peer.port)).begin();
 	m_socket->send_to(boost::asio::buffer(packet.content, packet.size), endpoint);
 }
 
-void PeerFacadeImpl::send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key) // NOLINT
+void PeerFacadeImpl::send(Packet packet, uint8_t code, std::optional<PublicKey> key) // NOLINT
 {
-	spdlog::debug("Package preparing");
-	if ((code & SendingFlags::ENCRYPTION) != 0) { 
+	spdlog::debug("Package with size {} preparing", packet.size);
+	if ((code & ENCRYPTION) != 0) {
 		if (!key.has_value()) {
 			spdlog::critical("No key, but encryption flag is on");
 			return;
 		}
-		packet = Packet(genBufferEncrypted(packet, key.value()));
+		encrypt(packet, key.value());
+		spdlog::debug("Size after encryption: {}", packet.size);
 	}
-	if ((code & SendingFlags::COMPRESSION) != 0) {
+	if ((code & COMPRESSION) != 0) {
 		Utils::Data data{packet.content, packet.size};
 		Utils::compress(data);
 		packet.size = data.size;
+		spdlog::debug("Size after compression: {}", packet.size);
 	}
-	if ((code & SendingFlags::CHECKSUM) != 0) {
+	if ((code & CHECKSUM) != 0) {
 		addChecksum(packet);
+		spdlog::debug("Size after checksum addition: {}", packet.size);
 	}
 	packet.append(&code, 1);
-	if ((code & SendingFlags::NACK) != 0) {
-		addNack(packet, peer);
+	if ((code & NEED_NACK) != 0) {
+		addNack(packet);
+		spdlog::debug("Size after nack adding: {}", packet.size);
 	}
 	spdlog::debug("Send starting");
-	sendRaw(packet, peer);
+	sendRaw(packet);
 	spdlog::debug("Sent packet with size {}", packet.size);
 }
 
@@ -112,6 +134,22 @@ void PeerFacadeImpl::init(Peer peer)
 	spdlog::info("Key generated");
 }
 
+bool PeerFacadeImpl::validateChecksum(Medae::Network::Packet& packet) const
+{
+	packet.size -= CHECKSUM_LENGTH;
+	auto* checksum = calcChecksum(packet);
+	packet.size -= CHECKSUM_LENGTH;
+	return std::memcmp(checksum, packet.content+packet.size-CHECKSUM_LENGTH, CHECKSUM_LENGTH) == 0;
+}
+
+void PeerFacadeImpl::sendNack(const Packet& packet)
+{
+	Packet nackPacket{1};
+	nackPacket.content[0] = NACK;
+	nackPacket.peer = packet.peer;
+	sendRaw(nackPacket);
+}
+
 Packet PeerFacadeImpl::receive()
 {
 	Packet packet(MAX_PACKET_SIZE);
@@ -119,25 +157,63 @@ Packet PeerFacadeImpl::receive()
 		spdlog::error("Failede receive message: Socket was not opened");
 		return packet;
 	}
-	udp::endpoint remoteEndpoint;
-	boost::system::error_code ec;
-	packet.size = m_socket->receive_from(boost::asio::buffer(packet.content, MAX_PACKET_SIZE), remoteEndpoint, 0, ec);
-	if (ec) {
-		spdlog::error("receive_from failed: {} (value {})", ec.message(), ec.value());
+	while (true) {
+		udp::endpoint remoteEndpoint;
+		boost::system::error_code ec;
+		packet.size = m_socket->receive_from(boost::asio::buffer(packet.content, MAX_PACKET_SIZE), remoteEndpoint, 0, ec);
+		if (ec) {
+			spdlog::error("receive_from failed: {} (value {})", ec.message(), ec.value());
+			continue;
+		}
+
+		packet.peer = {
+			remoteEndpoint.address().to_string(),
+			remoteEndpoint.port()
+		};
+
+		// Processing
+		uint8_t code = packet.content[packet.size-1];
+		packet.size--;
+		if ((code & COMPRESSION) != 0) {
+			Utils::Data data{packet.content, packet.size};
+			Utils::decompress(data);
+			packet.size = data.size;
+		}
+
+		if ((code & CHECKSUM) != 0) {
+			if (!validateChecksum(packet)) {
+				packet.size -= CHECKSUM_LENGTH;
+				if ((code & NEED_NACK) != 0) {
+					sendNack(packet);
+			  }
+			  continue;
+		  }
+			packet.size -= CHECKSUM_LENGTH;
+		}
+
+		if ((code & NACK) != 0) {
+			uint16_t nackID = *reinterpret_cast<uint16_t*>(&packet.content[packet.size-3]);	
+			m_packetsForNack.erase(nackID);
+			continue;
+		}
+
+		if ((code & ENCRYPTION) != 0) {
+			decrypt(packet);	
+		}
+
+		packet.append(&code, 1);
+
+		spdlog::debug("Received packet with size {} from {}:{}", packet.size, packet.peer.host, packet.peer.port);
+
 		return packet;
 	}
-	packet.sender.host = remoteEndpoint.address().to_string();
-	packet.sender.port = remoteEndpoint.port();
-	spdlog::debug("Received packet with size {}", packet.size);
-
-	return packet;
 }
 
 
-void DummyPeerFacade::send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key) // NOLINT
+void DummyPeerFacade::send(Packet packet, uint8_t code, std::optional<PublicKey> key) // NOLINT
 {
 	std::this_thread::sleep_for(std::chrono::seconds(1));
-	spdlog::info("Packet with size {} was sent to peer {}:{}", packet.size, peer.host, peer.port);
+	spdlog::info("Packet with size {} was sent to peer {}:{}", packet.size, packet.peer.host, packet.peer.port);
 }
 
 void DummyPeerFacade::init(Peer peer)

@@ -49,7 +49,7 @@ void Server::loop() // NOLINT
 
 void Server::processPacket(Network::Packet packet) // NOLINT
 {
-	m_connectionsManager->initOrGetPeer(packet.sender);
+	m_connectionsManager->initOrGetPeer(packet.peer);
 	spdlog::debug("Packet with size {} proceed", packet.size);
 }
 

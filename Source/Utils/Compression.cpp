@@ -7,7 +7,10 @@ using namespace Medae::Utils;
 
 void Medae::Utils::compress(Data& data)
 {
-	data.size = ZSTD_compress(data.content, data.size, data.content, data.size, 3);
+	auto* buffer = new uint8_t[ZSTD_compressBound(data.size)];
+	data.size = ZSTD_compress(buffer, ZSTD_compressBound(data.size), data.content, data.size, 3);
+	data.content = buffer;
+	delete[] data.content;
 
 	if (ZSTD_isError(data.size) != 0) {
 		spdlog::error("Error in compression: {}", ZSTD_getErrorName(data.size));

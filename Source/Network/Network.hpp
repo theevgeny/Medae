@@ -6,11 +6,9 @@
 #include <cstring>
 #include <memory>
 #include <optional>
-#include <map>
 #include <set>
 #include <shared_mutex>
 #include <string>
-#include <tuple>
 
 #include <sodium.h>
 #include <boost/asio.hpp>
@@ -29,7 +27,8 @@ enum SendingFlags : uint8_t
 	COMPRESSION	= 0x80,
 	ENCRYPTION	= 0x40,
 	CHECKSUM		= 0x20,
-	NACK				=	0x10,
+	NEED_NACK		=	0x10,
+	NACK				= 0x08
 };
 
 struct Peer
@@ -45,7 +44,7 @@ struct Packet
 	uint8_t* content = nullptr;
 	uint16_t size = 0;
 	uint16_t capacity = 0;
-	Peer sender{};
+	Peer peer{};
 	Packet() = default;
 	explicit Packet(uint16_t size)
 		: size(size)
@@ -88,7 +87,7 @@ class PeerFacade
 	virtual ~PeerFacade() = default;
 	virtual void init(Peer peer) = 0;
 	// Code is SendingFlags | Codes type
-	virtual void send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key = std::nullopt) = 0;
+	virtual void send(Packet packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) = 0;
 	virtual Packet receive() = 0;
 };
 
@@ -101,7 +100,7 @@ class PeerFacadeImpl : public PeerFacade
   public:
 	~PeerFacadeImpl() override = default;
 	void init(Peer peer) override;
-	void send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
+	void send(Packet packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
 	Packet receive() override;
 
   private:
@@ -115,11 +114,14 @@ class PeerFacadeImpl : public PeerFacade
 	std::shared_mutex m_nackMutex;
 
 	// packet - ready for send packet
-	void addNack(Packet& packet, const Peer& peer);
-	void sendRaw(const Packet& packet, const Peer& peer);
+	void addNack(Packet& packet);
+	void sendNack(const Packet& packet);
+	void sendRaw(const Packet& packet);
 	void addChecksum(Packet& packet);
 	[[nodiscard]] uint8_t* calcChecksum(const Packet& packet) const;
-	static boost::asio::const_buffer genBufferEncrypted(const Packet& packet, const PublicKey& key);
+	[[nodiscard]] bool validateChecksum(Packet& packet) const;
+	static void encrypt(Packet& packet, const PublicKey& key);
+	void decrypt(Packet& packet);
 
 	PublicKey m_publicKey;
 	PrivateKey m_privateKey;
@@ -130,7 +132,7 @@ class DummyPeerFacade : public PeerFacade
   public:
 	~DummyPeerFacade() override = default;
 	void init(Peer peer) override;
-	void send(Packet packet, Peer peer, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
+	void send(Packet packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
 	Packet receive() override;
 };
 

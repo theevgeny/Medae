@@ -1,9 +1,5 @@
 #include "Network.hpp"
 
-#include "Network/Network.hpp"
-#include "Utils/Compression.hpp"
-#include "Server/Server.hpp"
-
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -11,6 +7,9 @@
 
 #include <spdlog/spdlog.h>
 #include <boost/filesystem.hpp>
+
+#include "Network/Network.hpp"
+#include "Server/Server.hpp"
 
 using namespace Medae::Server;
 
@@ -58,10 +57,6 @@ Medae::Network::PublicKey ConnectionsManager::getPeerKey(PeerID peerID)
 
 FileSender::FileSender(std::shared_ptr<Medae::Network::PeerFacade> peerFacade) : m_peerFacade(std::move(peerFacade)) {}
 
-// |  Path length  |  Checksum length  |    File     |    Path     |   Checksum  | Code |
-// |     1 byte    |      2 bytes      | | | ... | | | | | ... | | | | | ... | | |1 byte|
-// |                   ========With checksum=======                | =Without checksum= |
-// |                   =========Compressed=========                | ==Not compressed== |
 void FileSender::sendFile(const std::string& path, const Network::Peer& peer)
 {
 	if (path.size() > std::numeric_limits<std::uint8_t>::max()) {
@@ -80,7 +75,7 @@ void FileSender::sendFile(const std::string& path, const Network::Peer& peer)
 	const uint16_t FILE_SIZE = std::filesystem::file_size(std::filesystem::path(path));
 	Network::Packet packet(FILE_SIZE + PATH_SIZE, FILE_SIZE + PATH_SIZE+10);
 	
-	spdlog::debug("Created data to compress: {}", packet.size);
+	spdlog::debug("Created data: {}", packet.size);
 
 	packet.content[0] = PATH_SIZE;
 
@@ -96,8 +91,9 @@ void FileSender::sendFile(const std::string& path, const Network::Peer& peer)
 	}
 
 	packet.append(reinterpret_cast<const uint8_t*>(&PATH_SIZE), 2);
+	packet.peer = peer;
 
-	m_peerFacade->send(packet, peer, Network::FILES | Network::CHECKSUM | Network::COMPRESSION); // NOLINT
+	m_peerFacade->send(packet, Network::FILES | Network::CHECKSUM | Network::COMPRESSION); // NOLINT
 }
 
 void FileSender::sendEncryptedFile(const std::string& path, const Network::Peer& peer, const Network::PublicKey& key) {}
