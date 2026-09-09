@@ -2,5 +2,7 @@ Build/
 build/
 .clangd
 .cache/
-properties.md
+properties.toml
 resources/
+client/
+server/
