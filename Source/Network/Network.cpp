@@ -27,6 +27,8 @@ void PeerFacadeImpl::encrypt(Packet& packet, const PublicKey& key)
 	if (crypto_box_seal(std::as_const(packet.content), buffer, packet.size, key.data()) != 0) {
 		spdlog::critical("Encryption failed");
 	}
+	
+	delete[] packet.content;
 
 	packet.content = buffer;
 	packet.size = outSize;
@@ -42,6 +44,8 @@ void PeerFacadeImpl::decrypt(Packet& packet)
 		spdlog::critical("Decryption failed");
 	}
 
+	delete[] packet.content;
+
 	packet.content = buffer;
 	packet.size = outSize;
 }
@@ -55,11 +59,11 @@ void PeerFacadeImpl::addNack(Packet& packet)
 	
 	packet.size--;
 	auto command = packet.content[packet.size];
-	packet.setCapacity(std::min(packet.capacity+0UL, packet.size+3UL));
+	packet.setCapacity(std::max(packet.capacity+0UL, packet.size+3UL));
 	packet.append(reinterpret_cast<uint8_t*>(&m_lastNack), 2);
 	packet.append(&command, 1);
 
-	std::thread nackWait([this, packet] (uint16_t lastNack) {
+	std::thread nackWait([&] (uint16_t lastNack) {
 		while (true) {
 			std::this_thread::sleep_for(NACK_WAIT);
 			m_nackMutex.lock_shared();
@@ -84,17 +88,25 @@ uint8_t* PeerFacadeImpl::calcChecksum(const Packet& packet) const
 
 void PeerFacadeImpl::addChecksum(Packet& packet)
 {
-	packet.append(calcChecksum(packet), CHECKSUM_LENGTH);
+	uint8_t* checksum = calcChecksum(packet);
+	packet.append(checksum, CHECKSUM_LENGTH);
+	delete[] checksum;
 }
 
 void PeerFacadeImpl::sendRaw(const Packet& packet)
 {
-	udp::resolver resolver(m_ioContext);
-	auto endpoint = *resolver.resolve(udp::v4(), packet.peer.host, std::to_string(packet.peer.port)).begin();
+	spdlog::debug("sendRaw called");
+	spdlog::debug("Start sending to {}:{}", packet.peer.host, packet.peer.port);
+	auto results = m_resolver->resolve(udp::v4(), packet.peer.host, std::to_string(packet.peer.port));
+	if (results.empty()) {
+    	spdlog::error("Failed to resolve {}:{}", packet.peer.host, packet.peer.port);
+    	return;
+	}
+	auto endpoint = *results.begin();
 	m_socket->send_to(boost::asio::buffer(packet.content, packet.size), endpoint);
 }
 
-void PeerFacadeImpl::send(Packet packet, uint8_t code, std::optional<PublicKey> key) // NOLINT
+void PeerFacadeImpl::send(Packet& packet, uint8_t code, std::optional<PublicKey> key) // NOLINT
 {
 	spdlog::debug("Package with size {} preparing", packet.size);
 	if ((code & ENCRYPTION) != 0) {
@@ -108,6 +120,7 @@ void PeerFacadeImpl::send(Packet packet, uint8_t code, std::optional<PublicKey> 
 	if ((code & COMPRESSION) != 0) {
 		Utils::Data data{packet.content, packet.size};
 		Utils::compress(data);
+		packet.content = data.content;
 		packet.size = data.size;
 		spdlog::debug("Size after compression: {}", packet.size);
 	}
@@ -132,18 +145,41 @@ void PeerFacadeImpl::init(Peer peer)
 
 	crypto_box_keypair(m_publicKey.data(), m_privateKey.data());
 	spdlog::info("Key generated");
+	
+	m_resolver = std::make_unique<udp::resolver>(m_ioContext);
+	spdlog::info("Resolver created");
+}
+
+void PeerFacadeImpl::init()
+{
+	m_socket = std::make_unique<udp::socket>(m_ioContext);
+	m_socket->open(udp::v4());
+	spdlog::info("Client socket opened");
+
+	crypto_box_keypair(m_publicKey.data(), m_privateKey.data());
+	spdlog::info("Key generated");
+	
+	m_resolver = std::make_unique<udp::resolver>(m_ioContext);
+	spdlog::info("Resolver created");
 }
 
 bool PeerFacadeImpl::validateChecksum(Medae::Network::Packet& packet) const
 {
+	// checksum is at the end of packet | ... | checksum |
+	
 	packet.size -= CHECKSUM_LENGTH;
 	auto* checksum = calcChecksum(packet);
-	packet.size -= CHECKSUM_LENGTH;
-	return std::memcmp(checksum, packet.content+packet.size-CHECKSUM_LENGTH, CHECKSUM_LENGTH) == 0;
+	bool ans = std::memcmp(checksum, packet.content+packet.size, CHECKSUM_LENGTH) == 0;
+	packet.size += CHECKSUM_LENGTH;
+	delete[] checksum;
+	return ans;
 }
 
 void PeerFacadeImpl::sendNack(const Packet& packet)
 {
+	// nackID is at the end of packet | ... | nackID |
+
+	uint16_t nackID = *reinterpret_cast<uint16_t*>(packet.content + packet.size);
 	Packet nackPacket{1};
 	nackPacket.content[0] = NACK;
 	nackPacket.peer = packet.peer;
@@ -158,6 +194,7 @@ Packet PeerFacadeImpl::receive()
 		return packet;
 	}
 	while (true) {
+		// TODO(Azat201003): write via cool buffer not fucken "MAX_PACKET_SIZE" or no, idk
 		udp::endpoint remoteEndpoint;
 		boost::system::error_code ec;
 		packet.size = m_socket->receive_from(boost::asio::buffer(packet.content, MAX_PACKET_SIZE), remoteEndpoint, 0, ec);
@@ -165,6 +202,7 @@ Packet PeerFacadeImpl::receive()
 			spdlog::error("receive_from failed: {} (value {})", ec.message(), ec.value());
 			continue;
 		}
+	
 
 		packet.peer = {
 			remoteEndpoint.address().to_string(),
@@ -172,34 +210,53 @@ Packet PeerFacadeImpl::receive()
 		};
 
 		// Processing
+		
+		spdlog::debug("PeerFacadeImpl::receive processing packet with size {}", packet.size);
+
 		uint8_t code = packet.content[packet.size-1];
 		packet.size--;
-		if ((code & COMPRESSION) != 0) {
-			Utils::Data data{packet.content, packet.size};
-			Utils::decompress(data);
-			packet.size = data.size;
+
+		if ((code & NEED_NACK) != 0) {
+			code ^= NEED_NACK;
+			packet.size -= 2;	
+			spdlog::debug("Size without nackID: {}", packet.size);
 		}
 
 		if ((code & CHECKSUM) != 0) {
+			code ^= CHECKSUM;
 			if (!validateChecksum(packet)) {
-				packet.size -= CHECKSUM_LENGTH;
-				if ((code & NEED_NACK) != 0) {
+				spdlog::error("Checksum isn't valid");
+				if ((code & NEED_NACK) != 0) { // Send nack in next packet with timeout
 					sendNack(packet);
 			  }
 			  continue;
 		  }
 			packet.size -= CHECKSUM_LENGTH;
+			spdlog::debug("Size without checksum: {}", packet.size);
 		}
 
+		if ((code & COMPRESSION) != 0) {
+			code ^= COMPRESSION;
+			Utils::Data data{packet.content, packet.size};
+			Utils::decompress(data);
+			packet.content = data.content;
+			packet.size = data.size;
+			packet.capacity = data.size;
+			spdlog::debug("Size after decompress: {}", packet.size);
+		}
+		
 		if ((code & NACK) != 0) {
+			code ^= NACK;
 			uint16_t nackID = *reinterpret_cast<uint16_t*>(&packet.content[packet.size-3]);	
 			m_packetsForNack.erase(nackID);
-			continue;
 		}
 
 		if ((code & ENCRYPTION) != 0) {
+			code ^= ENCRYPTION;
 			decrypt(packet);	
 		}
+
+		spdlog::debug("Code: {}, packet.size: {}, packet.capacity: {}", code, packet.size, packet.capacity);
 
 		packet.append(&code, 1);
 
@@ -210,7 +267,7 @@ Packet PeerFacadeImpl::receive()
 }
 
 
-void DummyPeerFacade::send(Packet packet, uint8_t code, std::optional<PublicKey> key) // NOLINT
+void DummyPeerFacade::send(Packet& packet, uint8_t code, std::optional<PublicKey> key) // NOLINT
 {
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	spdlog::info("Packet with size {} was sent to peer {}:{}", packet.size, packet.peer.host, packet.peer.port);
@@ -226,6 +283,6 @@ Packet DummyPeerFacade::receive()
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	Packet packet{};
 	spdlog::info("Received packet with size {}", packet.size);
-	return packet;
+	return std::move(packet);
 }
 

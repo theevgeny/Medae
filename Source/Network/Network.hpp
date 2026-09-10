@@ -8,6 +8,7 @@
 #include <optional>
 #include <set>
 #include <shared_mutex>
+#include <spdlog/spdlog.h>
 #include <string>
 
 #include <sodium.h>
@@ -18,8 +19,15 @@ namespace Medae::Network {
 
 enum Codes : uint8_t
 {
-	FILES			= 0x00,
-	GAME_DATA	= 0x01,
+// BOTH
+	GAME_DATA						= 0x00,
+	KEY									= 0x01,
+// CLIENT
+	INIT								= 0x02,
+	INFO								= 0x03,
+	PING								= 0x04,
+// SERVER
+	APPEND_TO_FILE			= 0x02,
 };
 
 enum SendingFlags : uint8_t
@@ -44,27 +52,45 @@ struct Packet
 	uint8_t* content = nullptr;
 	uint16_t size = 0;
 	uint16_t capacity = 0;
+	uint8_t debugID;
 	Peer peer{};
-	Packet() = default;
+	static uint8_t getDebugID() {
+		static uint8_t lastDebugID;
+		spdlog::debug("Created packet with debugID {}", ++lastDebugID);
+		return lastDebugID;
+	}
+	
+	Packet() : debugID(getDebugID()) {  }
+
+	Packet(Packet&&) = default;
+	Packet& operator=(Packet&&) = default;
 	explicit Packet(uint16_t size)
 		: size(size)
 		, content(new uint8_t[size])
-		, capacity(size) { }
+		, capacity(size)
+	  , debugID(getDebugID()) { }
 	explicit Packet(uint16_t size, uint16_t capacity)
 		: size(size)
 		, capacity(capacity)
-		, content(new uint8_t[size]) { }
-	explicit Packet(boost::asio::const_buffer buf) : size(buf.size()) {
+		, content(new uint8_t[capacity])
+	  , debugID(getDebugID()) { }
+	explicit Packet(boost::asio::const_buffer buf)
+		: size(buf.size())
+		, debugID(getDebugID()) {
 		memcpy(content, buf.data(), size);
 	}
-	void append(const uint8_t* data, uint16_t addSize) {
-		if (capacity-size < addSize) {
+	Packet(const Packet&) = delete;
+	Packet& operator=(const Packet&) = delete;
+	~Packet() {
+		delete[] content;
+		spdlog::debug("Deleted packet with debugID {}", debugID);
+	}
+	void append(const uint8_t* data, uint16_t addSize) { // TODO(Azat201003): make via operator <<
+		if (capacity < addSize + size || content == nullptr) { // Not enough size
 			setCapacity(size + addSize);
 		}
-
-		for (uint16_t i = 0; i < addSize; ++i) {
-			content[size++] = data[i];
-		}
+		memcpy(content+size, data, addSize);
+		size += addSize;
 	}
 	void setCapacity(uint16_t newCapacity) {
 		capacity = newCapacity;
@@ -86,8 +112,9 @@ class PeerFacade
   public:
 	virtual ~PeerFacade() = default;
 	virtual void init(Peer peer) = 0;
+	virtual void init() = 0; // client
 	// Code is SendingFlags | Codes type
-	virtual void send(Packet packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) = 0;
+	virtual void send(Packet& packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) = 0;
 	virtual Packet receive() = 0;
 };
 
@@ -100,7 +127,8 @@ class PeerFacadeImpl : public PeerFacade
   public:
 	~PeerFacadeImpl() override = default;
 	void init(Peer peer) override;
-	void send(Packet packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
+	void init() override;
+	void send(Packet& packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
 	Packet receive() override;
 
   private:
@@ -108,6 +136,7 @@ class PeerFacadeImpl : public PeerFacade
 
 	std::unique_ptr<udp::socket> m_socket;
 	boost::asio::io_context m_ioContext;
+	std::unique_ptr<udp::resolver> m_resolver;
 	const uint16_t MAX_PACKET_SIZE = 1024;
 	std::set<uint16_t> m_packetsForNack;
 	uint16_t m_lastNack;
@@ -132,7 +161,7 @@ class DummyPeerFacade : public PeerFacade
   public:
 	~DummyPeerFacade() override = default;
 	void init(Peer peer) override;
-	void send(Packet packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
+	void send(Packet& packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) override;
 	Packet receive() override;
 };
 

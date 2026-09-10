@@ -26,7 +26,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   Sodium
   GIT_REPOSITORY https://github.com/robinlinden/libsodium-cmake.git
-  GIT_TAG        9b2848dfc1b917a9410f0de9d81059b26cbfaa8d  # 请替换为你需要的具体commit
+  GIT_TAG        9b2848dfc1b917a9410f0de9d81059b26cbfaa8d
 )
 
 FetchContent_MakeAvailable(glad JoltPhysics Sodium)
@@ -75,13 +75,20 @@ target_link_libraries(client PRIVATE glm glfw glad_gl_core_43 EnTT::EnTT Jolt Op
 
 target_include_directories(client PRIVATE Source)
 
-add_link_options(-Wl,--gc-sections,-s)
+add_link_options(
+	-Wl
+	--gc-sections
+	-s
+	-fsanitize=address
+)
 add_compile_options(
 	-fcolor-diagnostics
 	-ffunction-sections
 	-fdata-sections
 	-O2
 	-g
+	-fsanitize=address
+	-fno-omit-frame-pointer
 )
 
 add_custom_command(TARGET server POST_BUILD
