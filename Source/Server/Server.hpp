@@ -23,7 +23,7 @@ class Server : public std::enable_shared_from_this<Server>
 	std::shared_ptr<PropertiesConfig> m_properties;
 	std::unique_ptr<ConnectionsManager> m_connectionsManager;
 	std::shared_ptr<ArgumentsParser> m_argumentParser;
-	void processPacket(Network::Packet packet);
+	void processPacket(const Network::Packet& packet);
 };
 
 }; // namespace Medae::Server

@@ -1,7 +1,6 @@
 #include "Network.hpp"
 
 #include <cstdint>
-#include <filesystem>
 #include <fstream>
 #include <memory>
 
@@ -72,28 +71,26 @@ void FileSender::sendFile(const std::string& path, const Network::Peer& peer)
 	}
 
 	const uint16_t PATH_SIZE = path.size();
-	const uint16_t FILE_SIZE = std::filesystem::file_size(std::filesystem::path(path));
-	Network::Packet packet(FILE_SIZE + PATH_SIZE, FILE_SIZE + PATH_SIZE+10);
+	const uint16_t FILE_SIZE = boost::filesystem::file_size(boost::filesystem::path(path));
+	spdlog::debug("Creating data with size: {}", FILE_SIZE + PATH_SIZE + 10);
+	Network::Packet packet(0, FILE_SIZE + PATH_SIZE + 10);
 	
-	spdlog::debug("Created data: {}", packet.size);
+	spdlog::debug("Created data with size: {}", packet.size);
 
-	packet.content[0] = PATH_SIZE;
+	packet.append(reinterpret_cast<const uint8_t*>(&PATH_SIZE), 2);
 
 	char ch{};
-	uint16_t i = 0;
 	while (file.get(ch)) {
-		packet.content[i] = static_cast<uint8_t>(ch);
-		i++;
+		packet.append(reinterpret_cast<const uint8_t*>(&ch), 1);
 	}
 
 	for (uint16_t i = 0; i < PATH_SIZE; ++i) {
-		packet.content[FILE_SIZE + i] = static_cast<uint8_t>(path[i]);
+		packet.append(reinterpret_cast<const uint8_t*>(&path[i]), 1);
 	}
-
-	packet.append(reinterpret_cast<const uint8_t*>(&PATH_SIZE), 2);
+	
 	packet.peer = peer;
 
-	m_peerFacade->send(packet, Network::FILES | Network::CHECKSUM | Network::COMPRESSION); // NOLINT
+	m_peerFacade->send(packet, Network::APPEND_TO_FILE | Network::CHECKSUM | Network::COMPRESSION); // NOLINT
 }
 
 void FileSender::sendEncryptedFile(const std::string& path, const Network::Peer& peer, const Network::PublicKey& key) {}

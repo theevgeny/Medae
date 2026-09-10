@@ -47,7 +47,7 @@ void Server::loop() // NOLINT
 	spdlog::info("Successfully stopped");
 }
 
-void Server::processPacket(Network::Packet packet) // NOLINT
+void Server::processPacket(const Network::Packet& packet)
 {
 	m_connectionsManager->initOrGetPeer(packet.peer);
 	spdlog::debug("Packet with size {} proceed", packet.size);
