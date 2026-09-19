@@ -2,7 +2,7 @@ Build/
 build/
 .clangd
 .cache/
-properties.toml
 resources/
 client/
 server/
+!*/.gitkeep

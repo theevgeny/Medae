@@ -1,5 +1,6 @@
 #include "Network.hpp"
 
+#include <boost/filesystem/operations.hpp>
 #include <cstdint>
 #include <fstream>
 #include <memory>
@@ -20,23 +21,26 @@ PeerID ConnectionsManager::initOrGetPeer(const Network::Peer& peer)
 		return it->second;
 	}
 
+	spdlog::info("New client connection");
+
 	// Send files
 	auto a = m_server.lock();
 	if (!a) {
 		spdlog::critical("No server");
 	}
 	auto fileSender = std::make_unique<FileSender>(a->getNetworkFacade());
-	
+
 	if (!boost::filesystem::exists(m_server.lock()->getProperies()->getClientFilesPath())) {
-		spdlog::critical("Client files not find");	
+		spdlog::error("Client files not find");
 		return 0;
 	}
 
 	spdlog::debug("Start file sending");
 
 	for (const auto& entry : boost::filesystem::recursive_directory_iterator(m_server.lock()->getProperies()->getClientFilesPath())) {
-		spdlog::debug("File sending: {}", entry.path().relative_path().string());
-		fileSender->sendFile(entry.path().relative_path().string(), peer);
+		auto filePath = boost::filesystem::relative(entry.path(), m_server.lock()->getProperies()->getClientFilesPath());
+		spdlog::debug("File sending: {}", (m_server.lock()->getProperies()->getClientFilesPath() / filePath).string());
+		fileSender->sendFile(filePath, m_server.lock()->getProperies()->getClientFilesPath(), peer);
 		spdlog::debug("File sent");
 	}
 
@@ -45,7 +49,7 @@ PeerID ConnectionsManager::initOrGetPeer(const Network::Peer& peer)
 			return peerID;
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -56,38 +60,38 @@ Medae::Network::PublicKey ConnectionsManager::getPeerKey(PeerID peerID)
 
 FileSender::FileSender(std::shared_ptr<Medae::Network::PeerFacade> peerFacade) : m_peerFacade(std::move(peerFacade)) {}
 
-void FileSender::sendFile(const std::string& path, const Network::Peer& peer)
+void FileSender::sendFile(const boost::filesystem::path& relPath, const boost::filesystem::path& absPath, const Network::Peer& peer)
 {
-	if (path.size() > std::numeric_limits<std::uint8_t>::max()) {
-		spdlog::error("Path \"{}\" is too long", path);
+	if (relPath.size() > std::numeric_limits<std::uint16_t>::max()) {
+		spdlog::error("Path \"{}\" is too long", relPath.string());
 		return;
 	}
 
-	std::ifstream file(path);
+	std::ifstream file(absPath / relPath);
 
 	if (!file.is_open()) {
-		spdlog::error("Cannot open file {}", path);
+		spdlog::error("Cannot open file {}", (absPath / relPath).string());
 		return;
 	}
 
-	const uint16_t PATH_SIZE = path.size();
-	const uint16_t FILE_SIZE = boost::filesystem::file_size(boost::filesystem::path(path));
-	spdlog::debug("Creating data with size: {}", FILE_SIZE + PATH_SIZE + 10);
+	const uint16_t PATH_SIZE = relPath.size();
+	const uint16_t FILE_SIZE = boost::filesystem::file_size(absPath / relPath);
+	spdlog::debug("Creating data with size: {}. File size: {}, path size: {}, other data: 10", FILE_SIZE + PATH_SIZE + 10, FILE_SIZE, PATH_SIZE);
 	Network::Packet packet(0, FILE_SIZE + PATH_SIZE + 10);
-	
+
 	spdlog::debug("Created data with size: {}", packet.size);
 
-	packet.append(reinterpret_cast<const uint8_t*>(&PATH_SIZE), 2);
+	packet << PATH_SIZE;
 
 	char ch{};
 	while (file.get(ch)) {
-		packet.append(reinterpret_cast<const uint8_t*>(&ch), 1);
+		packet << ch;
 	}
 
 	for (uint16_t i = 0; i < PATH_SIZE; ++i) {
-		packet.append(reinterpret_cast<const uint8_t*>(&path[i]), 1);
+		packet << relPath.c_str()[i];
 	}
-	
+
 	packet.peer = peer;
 
 	m_peerFacade->send(packet, Network::APPEND_TO_FILE | Network::CHECKSUM | Network::COMPRESSION); // NOLINT

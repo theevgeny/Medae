@@ -20,23 +20,23 @@ namespace Medae::Network {
 enum Codes : uint8_t
 {
 // BOTH
-	GAME_DATA						= 0x00,
-	KEY									= 0x01,
+	GAME_DATA		= 0x00,
+	KEY				= 0x01,
 // CLIENT
-	INIT								= 0x02,
-	INFO								= 0x03,
-	PING								= 0x04,
+	INIT			= 0x02,
+	INFO			= 0x03,
+	PING			= 0x04,
 // SERVER
-	APPEND_TO_FILE			= 0x02,
+	APPEND_TO_FILE	= 0x02,
 };
 
 enum SendingFlags : uint8_t
 {
 	COMPRESSION	= 0x80,
 	ENCRYPTION	= 0x40,
-	CHECKSUM		= 0x20,
-	NEED_NACK		=	0x10,
-	NACK				= 0x08
+	CHECKSUM	= 0x20,
+	NEED_NACK	= 0x10,
+	NACK		= 0x08
 };
 
 struct Peer
@@ -47,7 +47,7 @@ struct Peer
 	bool operator==(const Peer& other) const { return host == other.host && port == other.port; }
 };
 
-struct Packet
+struct Packet // TODO(Azat201003): add allocators support
 {
 	uint8_t* content = nullptr;
 	uint16_t size = 0;
@@ -59,7 +59,7 @@ struct Packet
 		spdlog::debug("Created packet with debugID {}", ++lastDebugID);
 		return lastDebugID;
 	}
-	
+
 	Packet() : debugID(getDebugID()) {  }
 
 	Packet(Packet&&) = default;
@@ -91,6 +91,11 @@ struct Packet
 		}
 		memcpy(content+size, data, addSize);
 		size += addSize;
+	}
+	template <typename T>
+	Packet& operator<<(T data) {
+		append(reinterpret_cast<uint8_t*>(&data), sizeof(data));
+		return *this;
 	}
 	void setCapacity(uint16_t newCapacity) {
 		capacity = newCapacity;
