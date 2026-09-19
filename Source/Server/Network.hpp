@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/filesystem/path.hpp>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -39,7 +40,10 @@ class FileSender
   public:
 	explicit FileSender(std::shared_ptr<Network::PeerFacade> peerFacade);
 	void sendFile(
-		const std::string& path, const Network::Peer& peer); // Path is relative and client will get in same folder
+		const boost::filesystem::path& relPath,
+		const boost::filesystem::path& absPath,
+		const Network::Peer& peer
+	); // Path is relative and client will get in same folder
 	void sendEncryptedFile(const std::string& path, const Network::Peer&, const Network::PublicKey& key);
 
   private:

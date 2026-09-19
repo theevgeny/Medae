@@ -22,7 +22,10 @@ Client::Client()
 void Client::appendToFile(const boost::filesystem::path& path, uint8_t* data, uint16_t size) {
 	spdlog::debug("Appending to file: {}", path.string());
 
-	boost::filesystem::ofstream fileStream(path, std::ios_base::out | std::ios_base::app);
+	boost::filesystem::path realPath = "client/"; // Config should be used
+	realPath /= path;
+
+	boost::filesystem::ofstream fileStream(realPath, std::ios_base::out | std::ios_base::app);
 
 	if (fileStream.is_open()) {
 		fileStream << std::string(reinterpret_cast<char*>(data), size);
@@ -42,7 +45,7 @@ void Client::processPacket(Network::Packet& packet) { // NOLINT
 		spdlog::debug("Path size: {}", pathSize);
 		auto path = boost::filesystem::path(std::string(reinterpret_cast<char*>(packet.content+packet.size-pathSize), pathSize));
 		spdlog::debug("Path: {}", path.string());
-		appendToFile(path, packet.content, packet.size-3);	
+		appendToFile(path, packet.content, packet.size-pathSize);
 		break;
 	}
 	case Network::KEY: // NOLINT
@@ -67,7 +70,7 @@ void Client::loop()
 	//std::cin >> packet.peer.host >> packet.peer.port;
 	packet.peer = {"127.0.0.1", 30665};
 	m_networkFacade->send(packet, Network::Codes::INIT);
-	
+
 	std::thread packetsHandling([&]() {
 		while (true) {
 			spdlog::debug("Wait for packet");
