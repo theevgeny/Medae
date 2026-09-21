@@ -2,6 +2,7 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <memory>
 
@@ -21,14 +22,22 @@ PeerID ConnectionsManager::initOrGetPeer(const Network::Peer& peer)
 		return it->second;
 	}
 
-	spdlog::info("New client connection");
+	spdlog::info("New client connection: {}", peer.toString());
 
-	// Send files
-	auto a = m_server.lock();
-	if (!a) {
+	auto server = m_server.lock();
+	if (!server) {
 		spdlog::critical("No server");
 	}
-	auto fileSender = std::make_unique<FileSender>(a->getNetworkFacade());
+
+	// Send key
+	spdlog::debug("Sending key");
+	Network::Packet keyPacket(server->getKey().size());
+	keyPacket.append(server->getKey().data(), server->getKey().size());
+	keyPacket.peer = peer;
+	server->getNetworkFacade()->send(keyPacket, Network::KEY | Network::CHECKSUM | Network::NEED_NACK);
+
+	// Send files
+	auto fileSender = std::make_unique<FileSender>(server->getNetworkFacade());
 
 	if (!boost::filesystem::exists(m_server.lock()->getProperies()->getClientFilesPath())) {
 		spdlog::error("Client files not find");
@@ -56,6 +65,11 @@ PeerID ConnectionsManager::initOrGetPeer(const Network::Peer& peer)
 Medae::Network::PublicKey ConnectionsManager::getPeerKey(PeerID peerID)
 {
 	return m_peerKeys[peerID];
+}
+
+void ConnectionsManager::setPeerKey(PeerID peerID, Network::PublicKey key)
+{
+	m_peerKeys[peerID] = key;
 }
 
 FileSender::FileSender(std::shared_ptr<Medae::Network::PeerFacade> peerFacade) : m_peerFacade(std::move(peerFacade)) {}

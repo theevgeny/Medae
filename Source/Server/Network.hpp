@@ -26,6 +26,7 @@ class ConnectionsManager
   public:
 	explicit ConnectionsManager(std::weak_ptr<Server> server);
 	PeerID initOrGetPeer(const Network::Peer& peer);
+	void setPeerKey(PeerID peerID, Network::PublicKey key);
 	[[nodiscard]] Network::PublicKey getPeerKey(PeerID peerID);
 
   private:

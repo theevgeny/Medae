@@ -16,14 +16,17 @@ class Server : public std::enable_shared_from_this<Server>
 	explicit Server(const std::shared_ptr<ArgumentsParser>& argumentParser);
 	NODIS std::shared_ptr<PropertiesConfig> getProperies() const;
 	NODIS std::shared_ptr<Network::PeerFacade> getNetworkFacade() const;
+	NODIS const Network::PublicKey& getKey() const;
 
-  
+
   private:
 	std::shared_ptr<Network::PeerFacade> m_networkFacade;
 	std::shared_ptr<PropertiesConfig> m_properties;
 	std::unique_ptr<ConnectionsManager> m_connectionsManager;
 	std::shared_ptr<ArgumentsParser> m_argumentParser;
-	void processPacket(const Network::Packet& packet);
+	Network::PrivateKey m_privateKey;
+	Network::PublicKey m_publicKey;
+	void processPacket(Network::Packet& packet);
 };
 
 }; // namespace Medae::Server

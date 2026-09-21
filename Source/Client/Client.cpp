@@ -50,6 +50,8 @@ void Client::processPacket(Network::Packet& packet) { // NOLINT
 	}
 	case Network::KEY: // NOLINT
 		// Process key
+		std::memcpy(m_serverKey.data(), packet.content, m_serverKey.size());
+		spdlog::debug("Server's key is gotten");
 		break;
 	case Network::GAME_DATA:
 		// Process game data
@@ -65,11 +67,24 @@ void Client::loop()
 	m_graphicsFacade->create_window("Medae client", 1920, 1080);
 
 	m_networkFacade->init();
+
+	Network::PublicKey publicKey{};
+	Network::PrivateKey privateKey{};
+
+	crypto_box_keypair(publicKey.data(), privateKey.data());
+	spdlog::info("Key generated");
+
+	m_networkFacade->setKeys(privateKey, publicKey);
+
 	Network::Packet packet;
-	//std::cout << "Enter host and port of server (splitted by space or enter)\n";
-	//std::cin >> packet.peer.host >> packet.peer.port;
+
 	packet.peer = {"127.0.0.1", 30665};
 	m_networkFacade->send(packet, Network::Codes::INIT);
+
+	Network::Packet keyPacket(0, publicKey.size()+32);
+	keyPacket.append(publicKey.data(), publicKey.size());
+	keyPacket.peer = packet.peer;
+	m_networkFacade->send(keyPacket, Network::KEY | Network::CHECKSUM | Network::NEED_NACK); // NOLINT
 
 	std::thread packetsHandling([&]() {
 		while (true) {

@@ -1,4 +1,5 @@
 #include "Network.hpp"
+
 #include "Utils/Compression.hpp"
 
 #include <chrono>
@@ -18,13 +19,13 @@
 
 using namespace Medae::Network;
 
-void PeerFacadeImpl::encrypt(Packet& packet, const PublicKey& key)
+void PeerFacadeImpl::encrypt(Packet& packet, const PublicKey& publicKey)
 {
 	const auto outSize = packet.size + crypto_box_SEALBYTES;
 
 	auto* buffer = new uint8_t[outSize];
 
-	if (crypto_box_seal(std::as_const(packet.content), buffer, packet.size, key.data()) != 0) {
+	if (crypto_box_seal(std::as_const(packet.content), buffer, packet.size, publicKey.data()) != 0) {
 		spdlog::critical("Encryption failed");
 	}
 
@@ -40,7 +41,7 @@ void PeerFacadeImpl::decrypt(Packet& packet)
 
 	auto* buffer = new uint8_t[outSize];
 
-	if (crypto_box_seal_open(buffer, std::as_const(packet.content), packet.size, m_publicKey.data(), m_privateKey.data()) != 0) {
+	if (crypto_box_seal_open(buffer, std::as_const(packet.content), packet.size, publicKey.data(), privateKey.data()) != 0) {
 		spdlog::critical("Decryption failed");
 	}
 
@@ -59,19 +60,23 @@ void PeerFacadeImpl::addNack(Packet& packet)
 
 	packet.size--;
 	auto command = packet.content[packet.size];
-	packet.setCapacity(std::max(packet.capacity+0UL, packet.size+3UL));
 	packet << m_lastNack << command;
 
-	std::thread nackWait([&] (uint16_t lastNack) {
+	Packet packetCopy{packet.size, packet.capacity};
+	packetCopy.peer = packet.peer;
+	memcpy(packetCopy.content, packet.content, packet.size);
+	std::thread nackWait([this, &packetCopy] (uint16_t lastNack) mutable { // Need to be tested
 		while (true) {
 			std::this_thread::sleep_for(NACK_WAIT);
 			m_nackMutex.lock_shared();
 			bool gotNack = this->m_packetsForNack.count(lastNack);
 			m_nackMutex.unlock_shared();
 			if (gotNack) { break; }
-			this->sendRaw(packet);
+			this->sendRaw(packetCopy);
 		}
 	}, m_lastNack);
+
+	nackWait.detach();
 }
 
 uint8_t* PeerFacadeImpl::calcChecksum(const Packet& packet) const
@@ -95,14 +100,19 @@ void PeerFacadeImpl::addChecksum(Packet& packet)
 void PeerFacadeImpl::sendRaw(const Packet& packet)
 {
 	spdlog::debug("sendRaw called");
-	spdlog::debug("Start sending to {}:{}", packet.peer.host, packet.peer.port);
+	spdlog::debug("Start sending to {}", packet.peer.toString());
 	auto results = m_resolver->resolve(udp::v4(), packet.peer.host, std::to_string(packet.peer.port));
 	if (results.empty()) {
-    	spdlog::error("Failed to resolve {}:{}", packet.peer.host, packet.peer.port);
+    	spdlog::error("Failed to resolve {}", packet.peer.toString());
     	return;
 	}
 	auto endpoint = *results.begin();
-	m_socket->send_to(boost::asio::buffer(packet.content, packet.size), endpoint);
+	boost::system::error_code ec;
+	m_socket->send_to(boost::asio::buffer(packet.content, packet.size), endpoint, 0, ec);
+	if (ec) {
+	    spdlog::error("send_to failed: {} (value {})", ec.message(), ec.value());
+	    return;
+	}
 }
 
 void PeerFacadeImpl::send(Packet& packet, uint8_t code, std::optional<PublicKey> key) // NOLINT
@@ -127,7 +137,7 @@ void PeerFacadeImpl::send(Packet& packet, uint8_t code, std::optional<PublicKey>
 		addChecksum(packet);
 		spdlog::debug("Size after checksum addition: {}", packet.size);
 	}
-	packet.append(&code, 1);
+	packet << code;
 	if ((code & NEED_NACK) != 0) {
 		addNack(packet);
 		spdlog::debug("Size after nack adding: {}", packet.size);
@@ -142,9 +152,6 @@ void PeerFacadeImpl::init(Peer peer)
 	m_socket = std::make_unique<udp::socket>(m_ioContext, udp::endpoint(udp::v4(), peer.port));
 	spdlog::info("Socket {}:{} opened", peer.host, peer.port);
 
-	crypto_box_keypair(m_publicKey.data(), m_privateKey.data());
-	spdlog::info("Key generated");
-
 	m_resolver = std::make_unique<udp::resolver>(m_ioContext);
 	spdlog::info("Resolver created");
 }
@@ -154,9 +161,6 @@ void PeerFacadeImpl::init()
 	m_socket = std::make_unique<udp::socket>(m_ioContext);
 	m_socket->open(udp::v4());
 	spdlog::info("Client socket opened");
-
-	crypto_box_keypair(m_publicKey.data(), m_privateKey.data());
-	spdlog::info("Key generated");
 
 	m_resolver = std::make_unique<udp::resolver>(m_ioContext);
 	spdlog::info("Resolver created");

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <fmt/format.h>
 #include <memory>
 #include <optional>
 #include <set>
@@ -28,6 +29,7 @@ enum Codes : uint8_t
 	PING			= 0x04,
 // SERVER
 	APPEND_TO_FILE	= 0x02,
+	PONG			= 0x03,
 };
 
 enum SendingFlags : uint8_t
@@ -45,6 +47,7 @@ struct Peer
 	uint16_t port = 0;
 
 	bool operator==(const Peer& other) const { return host == other.host && port == other.port; }
+	std::string toString() const { return fmt::format("{}:{}", host, port); }
 };
 
 struct Packet // TODO(Azat201003): add allocators support
@@ -114,13 +117,20 @@ void decrypt(Packet& data, const PrivateKey& key);
 
 class PeerFacade
 {
-  public:
+public:
 	virtual ~PeerFacade() = default;
 	virtual void init(Peer peer) = 0;
 	virtual void init() = 0; // client
 	// Code is SendingFlags | Codes type
 	virtual void send(Packet& packet, uint8_t code, std::optional<PublicKey> key = std::nullopt) = 0;
 	virtual Packet receive() = 0;
+	void setKeys(const PrivateKey& privateKey, const PublicKey& publicKey)
+	{
+		this->privateKey = privateKey;
+		this->publicKey = publicKey;
+	}
+	PrivateKey privateKey{};
+	PublicKey publicKey{};
 };
 
 const auto NACK_WAIT = std::chrono::seconds(1);
@@ -154,11 +164,8 @@ class PeerFacadeImpl : public PeerFacade
 	void addChecksum(Packet& packet);
 	[[nodiscard]] uint8_t* calcChecksum(const Packet& packet) const;
 	[[nodiscard]] bool validateChecksum(Packet& packet) const;
-	static void encrypt(Packet& packet, const PublicKey& key);
+	static void encrypt(Packet& packet, const PublicKey& publicKey);
 	void decrypt(Packet& packet);
-
-	PublicKey m_publicKey;
-	PrivateKey m_privateKey;
 };
 
 class DummyPeerFacade : public PeerFacade

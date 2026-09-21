@@ -17,6 +17,7 @@ private:
 	static void appendToFile(const boost::filesystem::path& path, uint8_t* data, uint16_t size);
 	std::unique_ptr<Graphics::FacadeInterface> m_graphicsFacade;
 	std::unique_ptr<Network::PeerFacade> m_networkFacade;
+	Network::PublicKey m_serverKey;
 };
 
 } // namespace Medae::Client
