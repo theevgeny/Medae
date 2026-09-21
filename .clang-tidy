@@ -119,3 +119,5 @@ CheckOptions:
 
   - key: cppcoreguidelines-noexcept-destructor.Check
     value: true
+
+HeaderFilterRegex: '.*/Medae/Source/.*'
