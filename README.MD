@@ -15,6 +15,8 @@ content lives on the server and is streamed to clients on demand. This makes the
 ideal for building highly dynamic, live-service style games where content can be added,
 patched, or replaced without shipping a new client build.
 
+Open [Wiki](Home)
+
 ### Core principles
 - **Zero built-in content** — the client is a universal runtime; the world comes from the server.
 - **Server-authoritative distribution** — resources, manifests, and metadata are pushed as binary data.
