@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Asset.hpp"
-#include "Assets/Color4.hpp"
+#include "Assets/Types/Color4.hpp"
 #include "Common/interface/RefCntAutoPtr.hpp"
 #include "Texture.h"
 #include "TextureView.h"
@@ -16,7 +16,7 @@ class VulkanRender;
 namespace Medae::Assets {
 class TextureAsset : public Asset
 {
-  public:
+public:
 	AssetType getType() override;
 	uint32_t getWidth();
 	uint32_t getHeight();
@@ -35,7 +35,7 @@ class TextureAsset : public Asset
 	TextureAsset(TextureAsset&&) noexcept = default;
 	TextureAsset& operator=(TextureAsset&&) noexcept = default;
 
-  private:
+private:
 	uint32_t m_width = 0;
 	uint32_t m_height = 0;
 	uint32_t m_mipLevels = 1;

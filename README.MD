@@ -1,6 +1,6 @@
 # 🎮 Medae
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)
-![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg?style=flat-square)
+![C++](https://img.shields.io/badge/C%2B%2B-23-blue.svg?style=flat-square)
 ![CMake](https://img.shields.io/badge/CMake-3.20%2B-blue.svg?style=flat-square)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-lightgrey.svg?style=flat-square)
 ![WebAssembly](https://img.shields.io/badge/WebAssembly-Wasmtime%20%7C%20Wasm3-purple.svg?style=flat-square)
@@ -15,7 +15,7 @@ content lives on the server and is streamed to clients on demand. This makes the
 ideal for building highly dynamic, live-service style games where content can be added,
 patched, or replaced without shipping a new client build.
 
-Open [Wiki](Home)
+Open [Wiki](https://github.com/theevgeny/Medae/wiki)
 
 ### Core principles
 - **Zero built-in content** — the client is a universal runtime; the world comes from the server.
@@ -60,7 +60,7 @@ Open [Wiki](Home)
 # 🚀 Getting Started
 ### Prerequisites 
 > - CMake 3.20+
-> - C++20 compatible compiler (GCC 11+, Clang 13+, MSVC 2019 v14.28+)
+> - C++23 compatible compiler (GCC 13+, Clang 16+, MSVC 2022 v17.4+)
 ### Building the Project(Arch Linux)
 ```bash
 git clone https://github.com/theevgeny/Medae.git
@@ -94,30 +94,30 @@ Medae is built on top of carefully selected, permissively-licensed open-source l
 
 ### 🧩 Core & Infrastructure
 
-| Library | Version | Purpose | License | Links |
-| :------ | :-----: | :------ | :-----: | :---- |
-| **EnTT** | `3.13+` | Header-only ECS (entity-component-system) | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/skypjack/entt) |
-| **Jolt Physics** | `5.0+` | Deterministic 3D physics & collision detection | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/jrouwe/JoltPhysics) |
-| **DiligentEngine** | `2.5+` | Cross-platform rendering abstraction (D3D12 / Vulkan / OpenGL) | ![Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg) | [GitHub](https://github.com/DiligentGraphics/DiligentEngine) |
-| **Boost** | `1.84+` | Asio networking, filesystem, utilities | ![BSL-1.0](https://img.shields.io/badge/License-BSL--1.0-green.svg) | [boost.org](https://www.boost.org/) |
+| Library  | Purpose | License | Links |
+| :------ | :------ | :-----: | :---- |
+| **EnTT** | Header-only ECS (entity-component-system) | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/skypjack/entt) |
+| **Jolt Physics**  | Deterministic 3D physics & collision detection | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/jrouwe/JoltPhysics) |
+| **DiligentEngine**  | Cross-platform rendering abstraction (D3D12 / Vulkan / OpenGL) | ![Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg) | [GitHub](https://github.com/DiligentGraphics/DiligentEngine) |
+| **Boost**  | Asio networking, filesystem, utilities | ![BSL-1.0](https://img.shields.io/badge/License-BSL--1.0-green.svg) | [boost.org](https://www.boost.org/) |
 
 ### 🌐 Security
 
-| Library | Version | Purpose | License | Links |
-| :------ | :-----: | :------ | :-----: | :---- |
-| **libsodium** | `1.0.18+` | Encryption library | ![ISC](https://img.shields.io/badge/License-ISC-lightgrey.svg) | [libsodium.org](https://libsodium.org/) |
+| Library  | Purpose | License | Links |
+| :------ | :------ | :-----: | :---- |
+| **libsodium**  | Encryption library | ![ISC](https://img.shields.io/badge/License-ISC-lightgrey.svg) | [libsodium.org](https://libsodium.org/) |
 
 ### ⚙️ WebAssembly Runtimes
 
-| Library | Version | Purpose | License | Links |
-| :------ | :-----: | :------ | :-----: | :---- |
-| **Wasmtime** | `48.0+` | JIT WebAssembly runtime | ![Apache 2.0](https://img.shields.io/badge/License-Apache%202.0%20WITH%20LLVM--exception-blue.svg) | [GitHub](https://github.com/bytecodealliance/wasmtime) |
-| **Wasm3** | `0.9.0` | Interpreter WebAssembly runtime | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/wasm3/wasm3) |
+| Library  | Purpose | License | Links |
+| :------ | :------ | :-----: | :---- |
+| **Wasmtime**  | JIT WebAssembly runtime | ![Apache 2.0](https://img.shields.io/badge/License-Apache%202.0%20WITH%20LLVM--exception-blue.svg) | [GitHub](https://github.com/bytecodealliance/wasmtime) |
+| **Wasm3**  | Interpreter WebAssembly runtime | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/wasm3/wasm3) |
 
 ### 🛠️ Utilities & Tooling
 
-| Library | Version | Purpose | License | Links |
-| :------ | :-----: | :------ | :-----: | :---- |
-| **spdlog** | `1.13+` | Fast header-only C++ logging | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/gabime/spdlog) |
-| **zstd** | `1.5.5+` | Fast lossless compression (resource streaming) | ![BSD-3](https://img.shields.io/badge/License-BSD--3--Clause-9cf.svg) | [GitHub](https://github.com/facebook/zstd) |
-| **tomlplusplus** | `3.4+` | Header-only TOML parser (config & manifests) | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/marzer/tomlplusplus) |
+| Library  | Purpose | License | Links |
+| :------ | :------ | :-----: | :---- |
+| **spdlog**  | Fast header-only C++ logging | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/gabime/spdlog) |
+| **zstd**  | Fast lossless compression (resource streaming) | ![BSD-3](https://img.shields.io/badge/License-BSD--3--Clause-9cf.svg) | [GitHub](https://github.com/facebook/zstd) |
+| **tomlplusplus**  | Header-only TOML parser (config & manifests) | ![MIT](https://img.shields.io/badge/License-MIT-yellow.svg) | [GitHub](https://github.com/marzer/tomlplusplus) |

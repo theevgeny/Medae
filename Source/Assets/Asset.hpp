@@ -1,6 +1,9 @@
 #pragma once
 
+#include "Utils/String.hpp"
 #include <cstdint>
+#include <string_view>
+
 namespace Medae::Assets {
 enum class AssetState : uint8_t
 {
@@ -12,15 +15,11 @@ enum class AssetState : uint8_t
 
 enum class AssetType : uint8_t
 {
+	UNKNOWN,
 	TEXTURE,
 	MODEL,
 	MATERIAL,
-	ANIMATION,
-	ANIMATION_CONTROLLER,
-	SOUND,
-	VERTEX_SHADER,
-	FRAGMENT_SHADER,
-	COMPUTE_SHADER
+	ANIMATION
 };
 
 enum class AssetLocation : uint8_t
@@ -31,13 +30,67 @@ enum class AssetLocation : uint8_t
 	ON_GPU = 3
 };
 
+AssetType getAssetTypeFromString(const std::string_view& string)
+{
+	std::string id = Utils::toLower(std::string(string));
+	switch (id.size()) {
+		case 5:
+			if (id == "model") {
+				return AssetType::MODEL;
+			}
+			break;
+		case 7:
+			if (id == "texture") {
+				return AssetType::TEXTURE;
+			}
+			break;
+		case 8:
+			if (id == "material") {
+				return AssetType::MATERIAL;
+			}
+			break;
+		case 9:
+			if (id == "animation")
+				return AssetType::ANIMATION;
+			break;
+	}
+	return AssetType::UNKNOWN;
+}
+
+bool currentFileExtensionForAssetType(AssetType assetType, const std::string& string)
+{
+	switch (assetType) {
+		case AssetType::MODEL:
+			if (string == ".mmod") {
+				return true;
+			}
+			break;
+		case AssetType::TEXTURE:
+			if (string == ".png") {
+				return true;
+			}
+			break;
+		case AssetType::ANIMATION:
+			if (string == ".manim") {
+				return true;
+			}
+			break;
+		case AssetType::MATERIAL:
+			if (string == ".manim") {
+				return true;
+			}
+			break;
+	}
+	return false;
+}
+
 class Asset
 {
-  protected:
+protected:
 	AssetState state = AssetState::UNLOADED;
 	AssetLocation location = AssetLocation::NOWHERE;
 
-  public:
+public:
 	Asset() = default;
 	~Asset() = default;
 
