@@ -18,6 +18,9 @@ class MaterialAsset : public Asset
 public:
 	AssetType getType() noexcept override;
 
+	MaterialAsset() noexcept = default;
+	~MaterialAsset() noexcept = default;
+
 	TextureHandle albedo;
 	TextureHandle normal;
 	TextureHandle metallicRoughness; //(Green channel=metallic, Blue channel=roughness)

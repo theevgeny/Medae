@@ -1,6 +1,7 @@
 #include "Assets/AssetList.hpp"
 
 #include <optional>
+#include <regex>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -11,8 +12,6 @@
 #include "Utils/String.hpp"
 
 using namespace Medae::Assets;
-
-const std::regex AssetList::kIdRegex{R"([a-zA-Z0-9_-]{1,64})"};
 
 const std::unordered_map<std::string, std::string>* AssetList::GetListForType(AssetType assetType) const noexcept
 {
@@ -88,6 +87,7 @@ AssetList::AssetList(FileHandler& file) noexcept
 
 bool AssetList::ParseAssetLine(std::string_view line, const std::string& path, int lineNumber) noexcept
 {
+	static const std::regex kIdRegex{R"([a-zA-Z0-9_-]{1,64})"};
 	const auto lineElementsOpt = Utils::SplitRespectQuotes(line);
 	if (!lineElementsOpt) {
 		spdlog::error("Failed to parse line in AssetList (path '{}', line {})", path, lineNumber);

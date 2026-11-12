@@ -45,7 +45,7 @@ protected:
 
 public:
 	Asset() noexcept = default;
-	~Asset() noexcept = default;
+	virtual ~Asset() noexcept = default;
 
 	virtual AssetType getType() noexcept = 0;
 	AssetState getState() noexcept;

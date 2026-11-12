@@ -161,9 +161,29 @@ add_executable(server
 add_executable(client
 	Source/Client/Main.cpp
 
+	Source/StbImageImpl.cpp
+
 	Source/Graphics/Window/LinuxWindow.cpp
 	Source/Graphics/Window/WindowFactory.cpp
 	Source/Graphics/VulkanRender.cpp
+
+    Source/Assets/Load/MaterialLoad.cpp
+    Source/Assets/Load/ModelLoad.cpp
+    Source/Assets/Load/TextureLoad.cpp
+    Source/Assets/Types/Color4.cpp
+    Source/Assets/Asset.cpp
+    Source/Assets/AssetList.cpp
+    Source/Assets/AssetTraits.cpp
+    Source/Assets/FileHandler.cpp
+    Source/Assets/BinaryFileHandler.cpp
+    Source/Assets/FallbackAssets.cpp
+    Source/Assets/MaterialAsset.cpp
+    Source/Assets/TextureAsset.cpp
+    Source/Assets/ModelAsset.cpp
+    Source/Assets/ResourceManager.cpp
+
+    Source/Utils/String.cpp
+    Source/Utils/Compression.cpp
 )
 
 target_link_libraries(server PRIVATE stb::stb Boost::headers
@@ -209,3 +229,6 @@ add_custom_command(TARGET client POST_BUILD
 )
 
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g")
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")

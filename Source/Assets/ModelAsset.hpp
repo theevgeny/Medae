@@ -35,6 +35,7 @@ public:
 	std::vector<MeshNode> nodes;
 
 	ModelAsset() noexcept = default;
+	~ModelAsset() noexcept = default;
 	ModelAsset(const std::string id) noexcept;
 	void uploadToGPU(const Graphics::VulkanRender& render) noexcept;
 	void dropFromCPU() noexcept;

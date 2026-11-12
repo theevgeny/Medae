@@ -1,4 +1,8 @@
 #include "TextureAsset.hpp"
+#include "Assets/Types/Color4.hpp"
+#include <cstddef>
+#include <cstring>
+#include <spdlog/spdlog.h>
 
 using namespace Medae::Assets;
 
@@ -47,6 +51,18 @@ TextureAsset::TextureAsset(uint32_t width, uint32_t height, Color4 pixel) noexce
 	m_height = height;
 	m_width = width;
 	m_pixels = std::vector<Color4>(m_width * m_height, pixel);
+}
+
+TextureAsset::TextureAsset(uint32_t width, uint32_t height, std::vector<Color4>&& pixels) noexcept
+{
+	size_t pixelCount = width * height;
+	if (pixels.size() != pixelCount) {
+		spdlog::error("TextureAsset::TextureAsset: expected {} pixels, got {} pixels", width * height, pixels.size());
+		return;
+	}
+	m_height = height;
+	m_width = width;
+	m_pixels.swap(pixels);
 }
 
 void TextureAsset::uploadToGPU(const Graphics::VulkanRender& render) noexcept

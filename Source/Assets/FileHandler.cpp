@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <fstream>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <utility>
 
@@ -9,6 +10,12 @@ using namespace Medae::Assets;
 
 FileHandler::FileHandler(std::fstream&& file, const std::string& path) noexcept : m_file(std::move(file)), m_path(path)
 {
+	m_file.exceptions(std::ios::goodbit);
+
+	if (!m_file.is_open()) {
+		spdlog::error("FileHandler: stream is not open: {}", m_path);
+		return;
+	}
 }
 
 std::string FileHandler::GetLine() noexcept

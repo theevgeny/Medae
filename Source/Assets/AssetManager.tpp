@@ -2,7 +2,8 @@
 
 #include "AssetManager.hpp"
 #include "AssetTraits.hpp"
-#include <X11/X.h>
+#include "Assets/AssetHandle.hpp"
+#include <spdlog/spdlog.h>
 
 using namespace Medae::Assets;
 
@@ -54,9 +55,16 @@ template<typename TAsset, typename THandle> bool AssetManager<TAsset, THandle>::
 	return m_idMap.contains(id);
 }
 template<typename TAsset, typename THandle>
-const THandle& AssetManager<TAsset, THandle>::Get(const std::string& id) const noexcept
+const THandle AssetManager<TAsset, THandle>::Get(const std::string& id) const noexcept
 {
-	return m_idMap.at(id);
+	auto it = m_idMap.find(id);
+	if (it != m_idMap.end()) {
+		const AssetSlot<TAsset>& slot = m_slots[it->second];
+		return THandle(slot.GetGeneration(), it->second);
+	} else {
+		spdlog::warn("AssetManager::Get: could not find a resource (id '{}')", id);
+		return THandle{0, 0};
+	}
 }
 
 template<typename TAsset, typename THandle>
@@ -72,8 +80,20 @@ void AssetManager<TAsset, THandle>::ResetResource(const THandle& handle) noexcep
 template<typename TAsset, typename THandle>
 TAsset& AssetManager<TAsset, THandle>::GetResource(const THandle& handle) noexcept
 {
-	const AssetSlot<TAsset>& assetSlot = m_slots.at(handle.index);
-	return assetSlot.GetGeneration() == handle.generation
-		? *assetSlot.GetResource()
-		: *static_cast<TAsset*>(getFallBackResource(AssetTraits<TAsset>::type));
+	if (handle.generation == 0) {
+		spdlog::warn("AssetManager::Get: Handle has invalid index {}", handle.index);
+		return getFallBackResource(AssetTraits<TAsset>::CreateFallback());
+	}
+	auto it = m_slots.find(handle.index);
+	if (it != m_slots.end()) {
+		const AssetSlot<TAsset>& assetSlot = it->second;
+		if (assetSlot.GetGeneration() != handle.generation) {
+			spdlog::warn("AssetManager::Get: Handle outdated {}", handle.index);
+			return getFallBackResource(AssetTraits<TAsset>::CreateFallback());
+		}
+		assetSlot.GetResource();
+	} else {
+		spdlog::warn("AssetManager::Get: could not find a resource (index {})", handle.index);
+		return getFallBackResource(AssetTraits<TAsset>::CreateFallback());
+	}
 }

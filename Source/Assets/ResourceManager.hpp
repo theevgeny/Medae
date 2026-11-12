@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Assets/AssetList.hpp"
+#include "Assets/BinaryFileHandler.hpp"
 #include "Assets/FileHandler.hpp"
 
 #include <optional>
@@ -17,6 +18,7 @@ public:
 	ResourceManager(const std::string& path, AssetList&& assetList) noexcept;
 
 	std::optional<FileHandler> GetFile(const std::string& id) const noexcept;
+	std::optional<BinaryFileHandler> GetBinaryFile(const std::string& id) const noexcept;
 };
 
 } // namespace Medae::Assets

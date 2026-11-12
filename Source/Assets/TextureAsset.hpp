@@ -28,8 +28,9 @@ public:
 	uint32_t getMipLevels() noexcept;
 
 	TextureAsset() noexcept = default;
+	~TextureAsset() noexcept = default;
 	TextureAsset(const std::string id) noexcept;
-	TextureAsset(std::vector<Color4>&& pixels) noexcept;
+	TextureAsset(uint32_t width, uint32_t height, std::vector<Color4>&& pixels) noexcept;
 	TextureAsset(uint32_t width, uint32_t height, Color4 pixel) noexcept;
 	TextureAsset(const TextureAsset&) noexcept = delete;
 	TextureAsset& operator=(const TextureAsset&) noexcept = delete;

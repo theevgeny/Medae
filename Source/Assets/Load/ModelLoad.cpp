@@ -22,28 +22,7 @@ using namespace Medae::Assets;
 
 constexpr std::uint32_t kNoParent = static_cast<std::uint32_t>(-1);
 
-std::string_view StripComment(std::string_view line)
-{
-	bool inQuotes = false;
-	for (std::size_t i = 0; i < line.size(); ++i) {
-		const char c = line[i];
-		if (c == '"') {
-			inQuotes = !inQuotes;
-		} else if (!inQuotes && c == '/' && i + 1 < line.size() && line[i + 1] == '/') {
-			line = line.substr(0, i);
-			break;
-		}
-	}
-	while (!line.empty() && (line.front() == ' ' || line.front() == '\t')) {
-		line.remove_prefix(1);
-	}
-	while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r')) {
-		line.remove_suffix(1);
-	}
-	return line;
-}
-
-bool ParseHeader(std::string_view line, const std::string& id, const std::string& path, std::string& outName)
+inline bool ParseHeader(std::string_view line, const std::string& id, const std::string& path, std::string& outName)
 {
 	if (line.empty()) {
 		spdlog::error("Model: missing 'n <version> <name>' header (path '{}')", path);
@@ -116,11 +95,11 @@ std::optional<std::tuple<std::string, ModelAsset>> LoadModel(
 	const std::string& path = file.GetPath();
 
 	std::string line = file.GetLine();
-	while (!line.empty() && StripComment(line).empty()) {
+	while (!line.empty() && Medae::Utils::StripComment(line).empty()) {
 		line = file.GetLine();
 	}
 	std::string headerName;
-	if (!ParseHeader(StripComment(line), id, path, headerName)) {
+	if (!ParseHeader(Medae::Utils::StripComment(line), id, path, headerName)) {
 		return std::nullopt;
 	}
 
@@ -133,7 +112,7 @@ std::optional<std::tuple<std::string, ModelAsset>> LoadModel(
 	bool haveCurrentMesh = false;
 
 	for (line = file.GetLine(); !line.empty(); line = file.GetLine()) {
-		const std::string_view clean = StripComment(line);
+		const std::string_view clean = Medae::Utils::StripComment(line);
 		if (clean.empty()) {
 			continue;
 		}

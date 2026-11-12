@@ -1,6 +1,5 @@
 #pragma once
 
-#include <X11/X.h>
 #include <cstdint>
 #include <memory>
 #include <stack>
@@ -36,7 +35,7 @@ template<typename TAsset, typename THandle> class AssetManager
 
 public:
 	bool contains(const std::string& id) noexcept;
-	const THandle& Get(const std::string& id) const noexcept;
+	const THandle Get(const std::string& id) const noexcept;
 	void PushResource(const std::string& id, TAsset&& resource) noexcept;
 	void ResetResource(const THandle& handle) noexcept;
 	TAsset& GetResource(const THandle& handle) noexcept;

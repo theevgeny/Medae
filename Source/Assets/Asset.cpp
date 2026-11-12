@@ -16,22 +16,22 @@ bool Medae::Assets::currentFileExtensionForAssetType(AssetType assetType, const 
 {
 	switch (assetType) {
 		case AssetType::MODEL:
-			if (string == ".mmod") {
+			if (string == "mmod") {
 				return true;
 			}
 			break;
 		case AssetType::TEXTURE:
-			if (string == ".png") {
+			if (string == "png" || string == "jpg") {
 				return true;
 			}
 			break;
 		case AssetType::ANIMATION:
-			if (string == ".manim") {
+			if (string == "manim") {
 				return true;
 			}
 			break;
 		case AssetType::MATERIAL:
-			if (string == ".manim") {
+			if (string == "mmat") {
 				return true;
 			}
 		default:

@@ -1,256 +1,57 @@
-// #include "Assets/Load/MaterialLoad.hpp"
+#include "TextureLoad.hpp"
 
-// #include <cstddef>
-// #include <optional>
-// #include <string>
-// #include <string_view>
-// #include <tuple>
-// #include <utility>
+#include "Assets/BinaryFileHandler.hpp"
+#include "Assets/ResourceManager.hpp"
+#include "Assets/TextureAsset.hpp"
+#include "Assets/Types/Color4.hpp"
 
-// #include <spdlog/spdlog.h>
+#include <bit>
+#include <cstdint>
+#include <cstring>
+#include <optional>
+#include <spdlog/spdlog.h>
+#include <string>
+#include <tuple>
 
-// #include "Assets/FileHandler.hpp"
-// #include "Utils/String.hpp"
+#include <stb/stb_image.h>
+#include <vector>
 
-// namespace Medae::Assets {
+using namespace Medae::Assets;
 
-// namespace {
+std::optional<std::tuple<std::string, TextureAsset>> Medae::Assets::LoadTexture(
+	const std::string& id, const ResourceManager& manager) noexcept
+{
+	std::optional<BinaryFileHandler> fileOpt = manager.GetBinaryFile(id);
+	if (!fileOpt || !fileOpt->IsValid()) {
+		spdlog::error("LoadTexture: failed to get BinaryFileHandler (id '{}')", id);
+		return std::nullopt;
+	}
 
-// bool ParseHeader(std::string_view line, const std::string& id, const std::string& path, std::string& outName)
-// {
-// 	if (line.empty()) {
-// 		spdlog::error("Material: missing 'n <version> <name>' header (path '{}')", path);
-// 		return false;
-// 	}
+	BinaryFileHandler& file = *fileOpt;
+	std::vector<uint8_t> bytes = file.GetAllBytes(); // bytes for png
 
-// 	const auto tokensOpt = Medae::Utils::SplitRespectQuotes(line);
-// 	if (!tokensOpt) {
-// 		spdlog::error("Material: failed to tokenize header (path '{}')", path);
-// 		return false;
-// 	}
-// 	const auto& tokens = *tokensOpt;
+	int width = 0;
+	int height = 0;
+	int channels = 0;
+	std::unique_ptr<uint8_t, decltype(&stbi_image_free)> data(
+		stbi_load_from_memory(bytes.data(), static_cast<int>(bytes.size()), &width, &height, &channels, 4),
+		&stbi_image_free);
 
-// 	if (tokens.size() != 3) {
-// 		spdlog::error("Material has no 'n <version> <name>' header, got {} token(s) (path '{}')", tokens.size(), path);
-// 		return false;
-// 	}
-// 	if (tokens[0] != "n") {
-// 		spdlog::error("Material header must start with 'n', got '{}' (path '{}')", tokens[0], path);
-// 		return false;
-// 	}
-// 	if (tokens[1] != "1.0") {
-// 		spdlog::error("Material has version '{}', but only '1.0' is supported (path '{}')", tokens[1], path);
-// 		return false;
-// 	}
-// 	if (tokens[2] != id) {
-// 		// Not an error: id from AssetList is the source of truth, but the mismatch is worth logging.
-// 		spdlog::warn("Material header name '{}' differs from id '{}' (path '{}')", tokens[2], id, path);
-// 	}
-// 	outName = tokens[2];
-// 	return true;
-// }
+	if (!data) {
+		spdlog::error("LoadTexture: failed to load texture from file (path '{}')", file.GetPath());
+		return std::nullopt;
+	}
+	if (width < 1 || height < 1 || width > 4096 || height > 4096 ||
+		!std::has_single_bit(static_cast<uint32_t>(width)) || !std::has_single_bit(static_cast<uint32_t>(height))) {
+		spdlog::error("LoadTexture: invalid texture size {}x{} (path '{}')", file.GetPath(), width, height);
+		return std::nullopt;
+	}
 
-// bool ParseBool(std::string_view sv, bool& out)
-// {
-// 	if (sv == "true" || sv == "1") {
-// 		out = true;
-// 		return true;
-// 	}
-// 	if (sv == "false" || sv == "0") {
-// 		out = false;
-// 		return true;
-// 	}
-// 	return false;
-// }
+	const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+	std::vector<Color4> pixels;
+	pixels.resize(pixelCount); // bytes for pixels
+	memcpy(pixels.data(), data.get(), pixelCount * 4);
 
-// bool ParseAlphaMode(std::string_view sv, AlphaMode& out)
-// {
-// 	const std::string lower = Medae::Utils::ToLower(sv);
-// 	if (lower == "opaque") {
-// 		out = AlphaMode::Opaque;
-// 		return true;
-// 	}
-// 	if (lower == "mask") {
-// 		out = AlphaMode::Mask;
-// 		return true;
-// 	}
-// 	if (lower == "blend") {
-// 		out = AlphaMode::Blend;
-// 		return true;
-// 	}
-// 	return false;
-// }
-
-// } // namespace
-
-// std::optional<std::tuple<std::string, MaterialAsset>> LoadMaterial(
-// 	const std::string& id, const ResourceManager& manager, const AssetManagers& assets)
-// {
-// 	auto fileOpt = manager.GetFile(id);
-// 	if (!fileOpt) {
-// 		spdlog::error("LoadMaterial: no file registered for material id '{}'", id);
-// 		return std::nullopt;
-// 	}
-// 	FileHandler& file = *fileOpt;
-// 	const std::string& path = file.GetPath();
-
-// 	// Header: always the first non-empty, non-comment line.
-// 	std::string line = file.GetLine();
-// 	while (!line.empty() && Medae::Utils::StripComment(line).empty()) {
-// 		line = file.GetLine();
-// 	}
-// 	std::string headerName;
-// 	if (!ParseHeader(Medae::Utils::StripComment(line), id, path, headerName)) {
-// 		return std::nullopt;
-// 	}
-
-// 	// Body.
-// 	MaterialAsset material;
-// 	for (line = file.GetLine(); !line.empty(); line = file.GetLine()) {
-// 		const std::string_view clean = Medae::Utils::StripComment(line);
-// 		if (clean.empty()) {
-// 			continue;
-// 		}
-
-// 		const std::size_t lineNumber = file.GetLineNumber();
-
-// 		const auto tokensOpt = Medae::Utils::SplitRespectQuotes(clean);
-// 		if (!tokensOpt) {
-// 			spdlog::error("LoadMaterial: failed to tokenize line (path '{}', line {})", path, lineNumber);
-// 			return std::nullopt;
-// 		}
-// 		const auto& tokens = *tokensOpt;
-// 		if (tokens.empty()) {
-// 			continue;
-// 		}
-
-// 		const std::string& keyword = tokens[0];
-
-// 		// A second 'n' header in the body is an error: the header was already parsed.
-// 		if (keyword == "n") {
-// 			spdlog::error("LoadMaterial: unexpected second 'n' header in body (path '{}', line {})", path, lineNumber);
-// 			return std::nullopt;
-// 		}
-
-// 		const auto expectArgs = [&](std::size_t n) -> bool {
-// 			if (tokens.size() != n + 1) {
-// 				spdlog::error("LoadMaterial: '{}' expects {} arg(s), got {} (path '{}', line {})", keyword, n,
-// 					tokens.size() - 1, path, lineNumber);
-// 				return false;
-// 			}
-// 			return true;
-// 		};
-// 		const auto reportBad = [&](std::string_view what) {
-// 			spdlog::error("LoadMaterial: bad {} (path '{}', line {})", what, path, lineNumber);
-// 		};
-
-// 		if (keyword == "albedo" || keyword == "normal" || keyword == "metallicRoughness" || keyword == "occlusion" ||
-// 			keyword == "emissive") {
-// 			if (!expectArgs(1)) {
-// 				return std::nullopt;
-// 			}
-// 			const TextureHandle handle = assets.texture.Get(tokens[1]);
-// 			if (keyword == "albedo") {
-// 				material.albedo = handle;
-// 			} else if (keyword == "normal") {
-// 				material.normal = handle;
-// 			} else if (keyword == "metallicRoughness") {
-// 				material.metallicRoughness = handle;
-// 			} else if (keyword == "occlusion") {
-// 				material.occlusion = handle;
-// 			} else {
-// 				material.emissive = handle;
-// 			}
-// 			continue;
-// 		}
-
-// 		if (keyword == "metallicFactor" || keyword == "roughnessFactor" || keyword == "normalScale" ||
-// 			keyword == "occlusionStrength" || keyword == "alphaCutoff") {
-// 			if (!expectArgs(1)) {
-// 				return std::nullopt;
-// 			}
-// 			float value = 0.0f;
-// 			if (!Medae::Utils::ToFloat(tokens[1], value)) {
-// 				reportBad(keyword);
-// 				return std::nullopt;
-// 			}
-// 			if (keyword == "metallicFactor") {
-// 				material.metallicFactor = value;
-// 			} else if (keyword == "roughnessFactor") {
-// 				material.roughnessFactor = value;
-// 			} else if (keyword == "normalScale") {
-// 				material.normalScale = value;
-// 			} else if (keyword == "occlusionStrength") {
-// 				material.occlusionStrength = value;
-// 			} else {
-// 				material.alphaCutoff = value;
-// 			}
-// 			continue;
-// 		}
-
-// 		if (keyword == "baseColorFactor") {
-// 			if (!expectArgs(4)) {
-// 				return std::nullopt;
-// 			}
-// 			float r = 0.0f;
-// 			float g = 0.0f;
-// 			float b = 0.0f;
-// 			float a = 0.0f;
-// 			if (!Medae::Utils::ToFloat(tokens[1], r) || !Medae::Utils::ToFloat(tokens[2], g) ||
-// 				!Medae::Utils::ToFloat(tokens[3], b) || !Medae::Utils::ToFloat(tokens[4], a)) {
-// 				reportBad("baseColorFactor");
-// 				return std::nullopt;
-// 			}
-// 			material.baseColorFactor = {r, g, b, a};
-// 			continue;
-// 		}
-
-// 		if (keyword == "emissiveFactor") {
-// 			if (!expectArgs(3)) {
-// 				return std::nullopt;
-// 			}
-// 			float r = 0.0f;
-// 			float g = 0.0f;
-// 			float b = 0.0f;
-// 			if (!Medae::Utils::ToFloat(tokens[1], r) || !Medae::Utils::ToFloat(tokens[2], g) ||
-// 				!Medae::Utils::ToFloat(tokens[3], b)) {
-// 				reportBad("emissiveFactor");
-// 				return std::nullopt;
-// 			}
-// 			material.emissiveFactor = {r, g, b};
-// 			continue;
-// 		}
-
-// 		if (keyword == "alphaMode") {
-// 			if (!expectArgs(1)) {
-// 				return std::nullopt;
-// 			}
-// 			AlphaMode mode = AlphaMode::Opaque;
-// 			if (!ParseAlphaMode(tokens[1], mode)) {
-// 				reportBad("alphaMode");
-// 				return std::nullopt;
-// 			}
-// 			material.alphaMode = mode;
-// 			continue;
-// 		}
-
-// 		if (keyword == "doubleSided") {
-// 			if (!expectArgs(1)) {
-// 				return std::nullopt;
-// 			}
-// 			bool value = false;
-// 			if (!ParseBool(tokens[1], value)) {
-// 				reportBad("doubleSided");
-// 				return std::nullopt;
-// 			}
-// 			material.doubleSided = value;
-// 			continue;
-// 		}
-
-// 		spdlog::warn("LoadMaterial: unknown keyword '{}' (path '{}', line {})", keyword, path, lineNumber);
-// 	}
-
-// 	return std::make_tuple(std::move(headerName), std::move(material));
-// }
-
-// } // namespace Medae::Assets
+	TextureAsset asset(static_cast<uint32_t>(width), static_cast<uint32_t>(height), std::move(pixels));
+	return std::tuple<std::string, TextureAsset>{id, std::move(asset)};
+}
