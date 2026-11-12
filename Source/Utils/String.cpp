@@ -1,25 +1,49 @@
 #include "String.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <charconv>
+#include <cstddef>
 
-std::string toLower(const std::string_view& string)
+std::string Medae::Utils::ToLower(std::string_view text)
 {
-	std::string s = std::string(string);
+	std::string s = std::string(text);
 	std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
 	return s;
 }
-std::string toUpper(const std::string_view& string)
+
+std::string Medae::Utils::ToUpper(std::string_view text)
 {
-	std::string s = std::string(string);
+	std::string s = std::string(text);
 	std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::toupper(c); });
 	return s;
 }
 
-std::optional<std::vector<std::string>> Medae::Utils::splitRespectQuotes(std::string_view line)
+std::string_view Medae::Utils::StripComment(std::string_view line)
+{
+	bool inQuotes = false;
+	for (std::size_t i = 0; i < line.size(); ++i) {
+		const char c = line[i];
+		if (c == '"') {
+			inQuotes = !inQuotes;
+		} else if (!inQuotes && c == '/' && i + 1 < line.size() && line[i + 1] == '/') {
+			line = line.substr(0, i);
+			break;
+		}
+	}
+	while (!line.empty() && (line.front() == ' ' || line.front() == '\t')) {
+		line.remove_prefix(1);
+	}
+	while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r')) {
+		line.remove_suffix(1);
+	}
+	return line;
+}
+
+std::optional<std::vector<std::string>> Medae::Utils::SplitRespectQuotes(std::string_view line)
 {
 	std::vector<std::string> out;
-	size_t i = 0;
+	std::size_t i = 0;
 	while (i < line.size()) {
 		while (i < line.size() && (line[i] == ' ' || line[i] == '\t'))
 			++i;
@@ -44,7 +68,7 @@ std::optional<std::vector<std::string>> Medae::Utils::splitRespectQuotes(std::st
 	return out;
 }
 
-bool Medae::Utils::isValidRelativePath(std::string_view p)
+bool Medae::Utils::IsValidRelativePath(std::string_view p)
 {
 	if (p.empty() || p.size() > 4096)
 		return false;
@@ -57,9 +81,9 @@ bool Medae::Utils::isValidRelativePath(std::string_view p)
 	if (p.find(':') != std::string_view::npos)
 		return false; // streams / drive
 
-	size_t i = 0;
+	std::size_t i = 0;
 	while (i <= p.size()) {
-		size_t j = p.find('/', i);
+		std::size_t j = p.find('/', i);
 		if (j == std::string_view::npos)
 			j = p.size();
 		std::string_view comp = p.substr(i, j - i);
@@ -70,7 +94,7 @@ bool Medae::Utils::isValidRelativePath(std::string_view p)
 			return false;
 
 		for (char ch : comp) {
-			unsigned char u = (unsigned char)ch;
+			unsigned char u = static_cast<unsigned char>(ch);
 			if (u < 0x20 || u == 0x7F)
 				return false;
 		}
@@ -82,7 +106,7 @@ bool Medae::Utils::isValidRelativePath(std::string_view p)
 		std::string_view stem = comp;
 		if (auto dot = stem.find('.'); dot != std::string_view::npos)
 			stem = stem.substr(0, dot);
-		if (isReservedStem(stem))
+		if (IsReservedStem(stem))
 			return false;
 
 		i = j + 1;
@@ -90,30 +114,31 @@ bool Medae::Utils::isValidRelativePath(std::string_view p)
 	return true;
 }
 
-bool Medae::Utils::isReservedStem(std::string_view stem)
+bool Medae::Utils::IsReservedStem(std::string_view stem)
 {
-	auto eqi = [](std::string_view a, std::string_view b) {
+	auto equalsIgnoreCase = [](std::string_view a, std::string_view b) {
 		if (a.size() != b.size())
 			return false;
-		for (size_t i = 0; i < a.size(); ++i)
-			if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i]))
+		for (std::size_t i = 0; i < a.size(); ++i)
+			if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i])))
 				return false;
 		return true;
 	};
-	static constexpr std::string_view names[] = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5",
+
+	static constexpr std::string_view kNames[] = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5",
 		"COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
-	for (auto n : names)
-		if (eqi(stem, n))
+	for (auto n : kNames)
+		if (equalsIgnoreCase(stem, n))
 			return true;
 	return false;
 }
 
-std::vector<std::string_view> Medae::Utils::split(std::string_view s, char delim)
+std::vector<std::string_view> Medae::Utils::Split(std::string_view s, char delim)
 {
 	std::vector<std::string_view> out;
-	size_t start = 0;
+	std::size_t start = 0;
 	while (true) {
-		size_t pos = s.find(delim, start);
+		std::size_t pos = s.find(delim, start);
 		if (pos == std::string_view::npos) {
 			out.push_back(s.substr(start));
 			break;
@@ -124,19 +149,19 @@ std::vector<std::string_view> Medae::Utils::split(std::string_view s, char delim
 	return out;
 }
 
-std::vector<std::string_view> Medae::Utils::splitAny(std::string_view s, std::initializer_list<std::string_view> delims)
+std::vector<std::string_view> Medae::Utils::SplitAny(std::string_view s, std::initializer_list<std::string_view> delims)
 {
 	std::vector<std::string_view> out;
-	size_t start = 0;
+	std::size_t start = 0;
 
 	while (start <= s.size()) {
-		size_t bestPos = std::string_view::npos;
-		size_t bestLen = 0;
+		std::size_t bestPos = std::string_view::npos;
+		std::size_t bestLen = 0;
 
 		for (auto d : delims) {
 			if (d.empty())
 				continue;
-			size_t p = s.find(d, start);
+			std::size_t p = s.find(d, start);
 			if (p != std::string_view::npos && (p < bestPos || (p == bestPos && d.size() > bestLen))) {
 				bestPos = p;
 				bestLen = d.size();
@@ -153,88 +178,89 @@ std::vector<std::string_view> Medae::Utils::splitAny(std::string_view s, std::in
 	return out;
 }
 
-std::optional<std::pair<size_t, size_t>> Medae::Utils::locate(std::string_view haystack, std::string_view needle)
+std::optional<std::pair<std::size_t, std::size_t>> Medae::Utils::Locate(
+	std::string_view haystack, std::string_view needle)
 {
 	if (needle.empty())
-		return std::pair{size_t{0}, size_t{0}};
+		return std::pair{std::size_t{0}, std::size_t{0}};
 
-	const char* hb = haystack.data();
-	const char* he = hb + haystack.size();
-	const char* nb = needle.data();
-	const char* ne = nb + needle.size();
+	const char* haystackBegin = haystack.data();
+	const char* haystackEnd = haystackBegin + haystack.size();
+	const char* needleBegin = needle.data();
+	const char* needleEnd = needleBegin + needle.size();
 
-	if (nb < hb || ne > he)
+	if (needleBegin < haystackBegin || needleEnd > haystackEnd)
 		return std::nullopt;
 
-	return std::pair{static_cast<size_t>(nb - hb), needle.size()};
+	return std::pair{static_cast<std::size_t>(needleBegin - haystackBegin), needle.size()};
 }
 
-bool Medae::Utils::toInt(std::string_view sv, int& out)
+bool Medae::Utils::ToInt(std::string_view sv, int& out)
 {
 	auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), out);
 	return ec == std::errc{} && ptr == sv.data() + sv.size();
 }
 
-bool Medae::Utils::toLong(std::string_view sv, long& out)
+bool Medae::Utils::ToLong(std::string_view sv, long& out)
 {
 	auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), out);
 	return ec == std::errc{} && ptr == sv.data() + sv.size();
 }
 
-bool Medae::Utils::toLongLong(std::string_view sv, long long& out)
+bool Medae::Utils::ToLongLong(std::string_view sv, long long& out)
 {
 	auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), out);
 	return ec == std::errc{} && ptr == sv.data() + sv.size();
 }
 
-bool Medae::Utils::toFloat(std::string_view sv, float& out)
+bool Medae::Utils::ToFloat(std::string_view sv, float& out)
 {
 	auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), out);
 	return ec == std::errc{} && ptr == sv.data() + sv.size();
 }
 
-bool Medae::Utils::toDouble(std::string_view sv, double& out)
+bool Medae::Utils::ToDouble(std::string_view sv, double& out)
 {
 	auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), out);
 	return ec == std::errc{} && ptr == sv.data() + sv.size();
 }
 
-std::optional<int> Medae::Utils::toInt(std::string_view sv)
+std::optional<int> Medae::Utils::ToInt(std::string_view sv)
 {
 	int v{};
-	if (toInt(sv, v))
+	if (ToInt(sv, v))
 		return v;
 	return std::nullopt;
 }
 
-std::optional<long> Medae::Utils::toLong(std::string_view sv)
+std::optional<long> Medae::Utils::ToLong(std::string_view sv)
 {
 	long v{};
-	if (toLong(sv, v))
+	if (ToLong(sv, v))
 		return v;
 	return std::nullopt;
 }
 
-std::optional<long long> Medae::Utils::toLongLong(std::string_view sv)
+std::optional<long long> Medae::Utils::ToLongLong(std::string_view sv)
 {
 	long long v{};
-	if (toLongLong(sv, v))
+	if (ToLongLong(sv, v))
 		return v;
 	return std::nullopt;
 }
 
-std::optional<float> Medae::Utils::toFloat(std::string_view sv)
+std::optional<float> Medae::Utils::ToFloat(std::string_view sv)
 {
 	float v{};
-	if (toFloat(sv, v))
+	if (ToFloat(sv, v))
 		return v;
 	return std::nullopt;
 }
 
-std::optional<double> Medae::Utils::toDouble(std::string_view sv)
+std::optional<double> Medae::Utils::ToDouble(std::string_view sv)
 {
 	double v{};
-	if (toDouble(sv, v))
+	if (ToDouble(sv, v))
 		return v;
 	return std::nullopt;
 }

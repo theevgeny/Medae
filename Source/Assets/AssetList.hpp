@@ -21,14 +21,14 @@ struct AssetList
 	std::unordered_map<std::string, std::string> modelList;
 	std::unordered_map<std::string, std::string> materialList;
 
-	explicit AssetList(FileHandler& file);
+	explicit AssetList(FileHandler& file) noexcept;
 
 	friend ResourceManager;
 
 private:
-	bool ParseAssetLine(std::string_view line, const std::string& path, int lineNumber);
-	std::unordered_map<std::string, std::string>* GetListForType(AssetType assetType);
-	const std::unordered_map<std::string, std::string>* GetListForType(AssetType assetType) const;
+	bool ParseAssetLine(std::string_view line, const std::string& path, int lineNumber) noexcept;
+	std::unordered_map<std::string, std::string>* GetListForType(AssetType assetType) noexcept;
+	const std::unordered_map<std::string, std::string>* GetListForType(AssetType assetType) const noexcept;
 };
 
 } // namespace Medae::Assets

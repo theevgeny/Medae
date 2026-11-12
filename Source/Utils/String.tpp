@@ -2,7 +2,7 @@
 
 #include "String.hpp"
 
-template<typename T> std::string Medae::Utils::vectorToString(const std::vector<T>& vec)
+template<typename TValue> std::string Medae::Utils::VectorToString(const std::vector<TValue>& vec)
 {
 	std::string str;
 	str.append("[");

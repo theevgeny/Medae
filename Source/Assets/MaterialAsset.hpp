@@ -15,8 +15,8 @@ enum class AlphaMode : uint8_t
 
 class MaterialAsset : public Asset
 {
-  public:
-	AssetType getType() override;
+public:
+	AssetType getType() noexcept override;
 
 	TextureHandle albedo;
 	TextureHandle normal;

@@ -4,16 +4,13 @@
 #include "Assets/ModelAsset.hpp"
 #include "Assets/TextureAsset.hpp"
 
-namespace Medae::Assets {
-namespace {
+using namespace Medae::Assets;
 
 TextureAsset g_textureFallback;
 ModelAsset g_modelFallback;
 MaterialAsset g_materialFallback;
 
-} // namespace
-
-void* GetFallbackResource(AssetType type)
+void* GetFallbackResource(AssetType type) noexcept
 {
 	switch (type) {
 		case AssetType::TEXTURE:
@@ -26,5 +23,3 @@ void* GetFallbackResource(AssetType type)
 			return nullptr;
 	}
 }
-
-} // namespace Medae::Assets

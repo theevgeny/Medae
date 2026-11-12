@@ -5,7 +5,9 @@
 This document defines the code formatting and style rules for C++ to ensure uniformity, readability, and maintainability of the project. The guidelines are based on best practices and adapted to the project's needs.
 
 **Mandatory:** All developers are required to follow the rules outlined here. Exceptions are permitted only with the approval of the project architect.
+
 **Language Standard:** C++23
+**Build Policy:** The project is compiled with **`-fno-exceptions`**. Throwing exceptions from project code is **prohibited**. See "Error Handling".
 
 ---
 
@@ -28,24 +30,25 @@ This document defines the code formatting and style rules for C++ to ensure unif
 - The opening brace for control constructs (`if`, `for`, `while`, `switch`) is placed on the **same line**, with a space before it.
 
 **Example:**
-```cpp
+
+CODE
 void MyFunction()
 {
-    // body
+	// body
 }
 
 class MyClass
 {
 public:
-    void Method();
+	void Method();
 };
 
 if (condition) {
-    DoSomething();
+	DoSomething();
 } else {
-    DoOther();
+	DoOther();
 }
-```
+CODE
 
 - Put a space after keywords (`if`, `for`, `while`, `switch`, `return`, etc.).
 - Do **not** put a space before the opening parenthesis in a function call (`foo(arg)`, not `foo (arg)`).
@@ -69,7 +72,7 @@ if (condition) {
 | Public/protected fields      | **camelCase** (no prefix)       | `int count;` (if allowed)             |
 | Constants (constexpr, const) | **kPascalCase**                 | `const int kMaxConnections = 100;`    |
 | Macros                       | **UPPER_CASE_WITH_UNDERSCORES** | `#define MY_MACRO 1`                  |
-| Namespaces                   | **lower_case** (by agreement)   | `namespace my_project`             |
+| Namespaces                   | **lower_case** (by agreement)   | `namespace my_project`                |
 | Template parameters          | **PascalCase** with prefix `T`  | `template <typename TData>`           |
 | Static class members         | **camelCase** with prefix `s_`  | `static int s_instanceCount;`         |
 
@@ -93,16 +96,17 @@ All public classes, methods, enumerations, and important functions must contain 
 - `@brief` – a short description.
 - `@param` – for each parameter.
 - `@return` – for the return value (if not `void`).
-- `@throw` – if the function can throw an exception.
+- `@note` – if the function reports failures via `spdlog::error` and returns a fallback value.
 
 **Example:**
-```cpp
+
+CODE
 /// @brief Reads the contents of a file into a string.
 /// @param filename Path to the file.
-/// @return String with the file contents.
-/// @throw std::runtime_error If the file cannot be opened.
-std::string ReadFileToString(const std::string& filename);
-```
+/// @return String with the file contents, or an empty string on failure.
+/// @note On error, logs via spdlog::error and returns an empty string.
+std::string ReadFileToString(const std::string& filename) noexcept;
+CODE
 
 ### Code Organization
 - Use `// TODO(your_name): description` for unfinished tasks.
@@ -115,7 +119,8 @@ std::string ReadFileToString(const std::string& filename);
   4. Internal project headers.
 
 **Example:**
-```cpp
+
+CODE
 // my_class.cpp
 #include "my_class.h"
 
@@ -124,16 +129,88 @@ std::string ReadFileToString(const std::string& filename);
 
 #include "third_party/lib.h"
 #include "project/utils.h"
-```
+CODE
 
 ### Namespaces
 - Place all project code in a namespace matching the project name (e.g., `namespace my_project`).
 - Do not use `using namespace` in header files (to avoid polluting the global namespace).
 - In `.cpp` files, `using` for individual symbols is allowed.
 
+---
+
+## Error Handling
+
+The project is built with **`-fno-exceptions`**. Any `throw` reached at runtime terminates the process via `std::terminate`; it does **not** unwind and is **not** catchable. Therefore:
+
+- **Do not use `throw` / `try` / `catch` / `<stdexcept>` in project code.** This includes `std::optional::value()`, `std::variant::get()`, `std::vector::at()`, `std::map::at()`, `std::string::substr()` with invalid pos, and any other API whose failure path throws.
+- **Do not use `.at()` / `.value()` / `.get()` on containers and `optional`/`variant`.** Under `-fno-exceptions` these call `std::terminate` (libstdc++) or throw and then terminate (libc++). Always do an explicit bounds check and use `operator[]` / `*optional` after the check.
+- **Report failures via `spdlog::error`** (see Logging) and return a safe fallback:
+  - numeric types → `0`;
+  - vectors / strings → empty or zero-filled, depending on the contract of the call (document it in Doxygen);
+  - `std::optional<T>` → `std::nullopt`;
+  - objects with a validity flag (e.g., `BinaryFileHandler`) → expose `IsValid() noexcept` and document that every other method returns zero/empty when invalid.
+- **Never silently swallow an error.** Every failed operation that produces a fallback value must produce one `spdlog::error` (or `spdlog::warn` when the fallback is part of the documented contract, e.g., zero-padding past EOF).
+- **Library calls that may throw** (Boost.Asio callbacks, Diligent, Jolt) must be wrapped at the boundary: validate inputs before the call, and check return codes / error_codes afterwards. If a dependency exposes a throwing API without a non-throwing variant, isolate it behind a project wrapper that converts the failure into the project's non-throwing contract.
+- **Mark non-throwing functions `noexcept`.** Anything that does not itself allocate in a way that could throw or call a throwing dependency should be `noexcept`. This is a contract, not a hint: a `noexcept` function must not let any `throw` escape, including from standard-library calls.
+- **Streams:** if using `std::fstream` / `std::ifstream`, always call `stream.exceptions(std::ios::goodbit)` after obtaining the stream. Never rely on the default mask if the stream came from user code that may have changed it.
+
+### Example: non-throwing read
+
+CODE
+/// @brief Reads exactly count bytes from the stream.
+/// @param count Number of bytes requested.
+/// @return Vector of exactly count bytes; real data followed by zeros on short read.
+/// @note Non-throwing. Logs via spdlog::error on I/O failure or EOF; tail is zero-filled.
+std::vector<std::uint8_t> ReadBytes(std::size_t count) noexcept
+{
+	std::vector<std::uint8_t> buffer(count, 0);
+	if (count == 0) {
+		return buffer;
+	}
+
+	const std::size_t available = m_readPos < m_size ? m_size - m_readPos : 0;
+	const std::size_t toRead = std::min(count, available);
+
+	if (toRead > 0) {
+		m_file.read(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(toRead));
+		if (!m_file) {
+			spdlog::error("ReadBytes: read failed at offset {} (requested {} of {}): {}",
+				m_readPos, toRead, count, m_path);
+			m_file.clear();
+		}
+	}
+
+	if (toRead < count) {
+		spdlog::error("ReadBytes: requested {} byte(s) at offset {}, only {} available, "
+			"zero-padding {} byte(s): {}",
+			count, m_readPos, toRead, count - toRead, m_path);
+	}
+
+	m_readPos += toRead;
+	return buffer;
+}
+CODE
+
+### Logging
+
+- Use `spdlog` free functions (`spdlog::error`, `spdlog::warn`, `spdlog::info`, `spdlog::debug`, `spdlog::critical`). Do not construct loggers ad-hoc inside business logic.
+- **Message format:** `<FunctionOrClass>: <description> (<context>)`.
+  - Paths and identifiers that may contain spaces are quoted with `'{}'`.
+  - Context (path, line, offset, id) — in parentheses at the end of the message.
+- **Level semantics:**
+  - `spdlog::error` — an operation failed; a fallback value is returned. Exactly one `error` per failure path.
+  - `spdlog::warn` — recoverable deviation (e.g., name mismatch, missing optional field, EOF padding); execution continues.
+  - `spdlog::info` — high-level lifecycle events, off by default in hot paths.
+  - `spdlog::debug` — trace of successful paths; guarded with `if (spdlog::should_log(spdlog::level::debug))` if the message builds a string.
+- **One module — one prefix.** Use the class or function name consistently within a translation unit.
+- Never log and return a fallback **and** set an error flag that the caller is required to check on the same call — pick one contract per function and document it.
+
+---
+
 ## C++ Specifics
-- Exceptions are allowed and encouraged for error handling.
-- Do not use exception specifications (deprecated). Use `noexcept` where appropriate (e.g., move operations).
+
+- **Exceptions:** prohibited (see "Error Handling"). Do not use `throw`, `try`, `catch`, `<stdexcept>`, or APIs whose failure path throws.
+- **`noexcept`:** mark every function that cannot fail or whose failure is reported via fallback + `spdlog`. Constructors that only set up state and log errors should also be `noexcept` where possible.
 - Use of `typeid` and `dynamic_cast` is allowed only in extreme cases (e.g., debugging). In main code, prefer polymorphism via virtual functions or the Visitor pattern.
 - Prefer `std::unique_ptr` for exclusive ownership, and `std::shared_ptr` for shared ownership.
 - Do not use raw pointers for resource ownership (except when working with low-level C code).
@@ -151,15 +228,19 @@ std::string ReadFileToString(const std::string& filename);
 - Always initialize variables when declaring them.
 - Avoid undefined behavior (UB): signed integer overflow, out-of-bounds array access, dereferencing a null pointer, etc.
 - For fixed-size arrays, use `std::array` instead of C-style arrays.
-- Check container bounds – use `.at()` where the index may be invalid.
 - Do not use `std::endl` – use `'\n'` for line breaks (endl flushes the buffer, reducing performance).
+
+---
 
 ## Automation Tools
 
 For style checking and formatting, use:
 
 - **clang-format** with a configuration file (`.clang-format`). Settings must match this document.
-- **clang-tidy** for static analysis and detecting potential issues.
+- **clang-tidy** for static analysis and detecting potential issues. Enable at minimum:
+  - `bugprone-exception-escape` — flags `noexcept` functions that may throw;
+  - `bugprone-unchecked-optional-access`;
+  - `cppcoreguidelines-pro-bounds-avoid-unchecked-container-access` is **not** suitable here — the project intentionally uses `operator[]` with manual checks, not `.at()`.
 - **Build with warnings**: enable flags `-Wall -Wextra -Wpedantic` (or equivalents in MSVC) and fix all warnings.
 
 Any deviations from this style must be justified and documented in the code with a `// NOLINT` comment (for clang-tidy) and approved by the team.

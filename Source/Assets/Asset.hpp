@@ -1,10 +1,14 @@
 #pragma once
 
-#include "Utils/String.hpp"
 #include <cstdint>
 #include <string_view>
 
+#define MMAT_VERSION "1.0"
+#define MMOD_VERSION "1.0"
+#define MALIST_VERSION "1.0"
+
 namespace Medae::Assets {
+
 enum class AssetState : uint8_t
 {
 	UNLOADED = 0,
@@ -30,59 +34,8 @@ enum class AssetLocation : uint8_t
 	ON_GPU = 3
 };
 
-AssetType getAssetTypeFromString(const std::string_view& string)
-{
-	std::string id = Utils::toLower(std::string(string));
-	switch (id.size()) {
-		case 5:
-			if (id == "model") {
-				return AssetType::MODEL;
-			}
-			break;
-		case 7:
-			if (id == "texture") {
-				return AssetType::TEXTURE;
-			}
-			break;
-		case 8:
-			if (id == "material") {
-				return AssetType::MATERIAL;
-			}
-			break;
-		case 9:
-			if (id == "animation")
-				return AssetType::ANIMATION;
-			break;
-	}
-	return AssetType::UNKNOWN;
-}
-
-bool currentFileExtensionForAssetType(AssetType assetType, const std::string& string)
-{
-	switch (assetType) {
-		case AssetType::MODEL:
-			if (string == ".mmod") {
-				return true;
-			}
-			break;
-		case AssetType::TEXTURE:
-			if (string == ".png") {
-				return true;
-			}
-			break;
-		case AssetType::ANIMATION:
-			if (string == ".manim") {
-				return true;
-			}
-			break;
-		case AssetType::MATERIAL:
-			if (string == ".manim") {
-				return true;
-			}
-			break;
-	}
-	return false;
-}
+AssetType getAssetTypeFromString(const std::string_view& string) noexcept;
+bool currentFileExtensionForAssetType(AssetType assetType, const std::string& string) noexcept;
 
 class Asset
 {
@@ -91,12 +44,12 @@ protected:
 	AssetLocation location = AssetLocation::NOWHERE;
 
 public:
-	Asset() = default;
-	~Asset() = default;
+	Asset() noexcept = default;
+	~Asset() noexcept = default;
 
-	virtual AssetType getType() = 0;
-	AssetState getState();
-	AssetLocation getLocation();
-	void setState(AssetState state);
+	virtual AssetType getType() noexcept = 0;
+	AssetState getState() noexcept;
+	AssetLocation getLocation() noexcept;
+	void setState(AssetState state) noexcept;
 };
 } // namespace Medae::Assets

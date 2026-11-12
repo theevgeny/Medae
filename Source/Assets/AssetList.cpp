@@ -7,13 +7,14 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Assets/Asset.hpp"
 #include "Utils/String.hpp"
 
 using namespace Medae::Assets;
 
 const std::regex AssetList::kIdRegex{R"([a-zA-Z0-9_-]{1,64})"};
 
-const std::unordered_map<std::string, std::string>* AssetList::GetListForType(AssetType assetType) const
+const std::unordered_map<std::string, std::string>* AssetList::GetListForType(AssetType assetType) const noexcept
 {
 	switch (assetType) {
 		case AssetType::MODEL:
@@ -29,35 +30,65 @@ const std::unordered_map<std::string, std::string>* AssetList::GetListForType(As
 	}
 }
 
-
-bool ParseHeader(std::string_view line, const std::string& path)
+std::string_view StripComment(std::string_view line) noexcept
 {
-	const auto elements = Medae::Utils::split(line, ' ');
+	bool inQuotes = false;
+	for (size_t i = 0; i < line.size(); ++i) {
+		const char c = line[i];
+		if (c == '"') {
+			inQuotes = !inQuotes;
+		} else if (!inQuotes) {
+			if (c == '/' && i + 1 < line.size() && line[i + 1] == '/') {
+				line = line.substr(0, i);
+				break;
+			}
+		}
+	}
+	while (!line.empty() && (line.front() == ' ' || line.front() == '\t')) {
+		line.remove_prefix(1);
+	}
+	while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r')) {
+		line.remove_suffix(1);
+	}
+	return line;
+}
+
+bool ParseHeader(std::string_view line, const std::string& path) noexcept
+{
+	const auto elements = Medae::Utils::Split(line, ' ');
 	if (elements.size() != 2) {
 		spdlog::error("AssetList has no 'n version' struct on first line (path '{}')", path);
 		return false;
 	}
-	if (elements[1] != "1.0") {
-		spdlog::error("AssetList has version '{}', but only '1.0' is supported (path '{}')", elements[1], path);
+	if (elements[1] != MALIST_VERSION) {
+		spdlog::error(
+			"AssetList has version '{}', but only '{}' is supported (path '{}')", elements[1], MALIST_VERSION, path);
 		return false;
 	}
 	return true;
 }
 
-AssetList::AssetList(FileHandler& file)
+AssetList::AssetList(FileHandler& file) noexcept
 {
 	const std::string path = file.GetPath();
-	if (!ParseHeader(file.GetLine(), path)) {
+	std::string line = file.GetLine();
+	while (!line.empty() && StripComment(line).empty()) {
+		line = file.GetLine();
+	}
+	if (!ParseHeader(StripComment(line), path)) {
 		return;
 	}
-	for (std::string line = file.GetLine(); !line.empty(); line = file.GetLine()) {
-		ParseAssetLine(line, path, file.GetLineNumber());
+	for (line = file.GetLine(); !line.empty(); line = file.GetLine()) {
+		const std::string_view clean = StripComment(line);
+		if (clean.empty())
+			continue;
+		ParseAssetLine(clean, path, file.GetLineNumber());
 	}
 }
 
-bool AssetList::ParseAssetLine(std::string_view line, const std::string& path, int lineNumber)
+bool AssetList::ParseAssetLine(std::string_view line, const std::string& path, int lineNumber) noexcept
 {
-	const auto lineElementsOpt = Utils::splitRespectQuotes(line);
+	const auto lineElementsOpt = Utils::SplitRespectQuotes(line);
 	if (!lineElementsOpt) {
 		spdlog::error("Failed to parse line in AssetList (path '{}', line {})", path, lineNumber);
 		return false;
@@ -79,7 +110,7 @@ bool AssetList::ParseAssetLine(std::string_view line, const std::string& path, i
 		spdlog::error("Asset in AssetList has invalid id '{}' (path '{}', line {})", lineElements[1], path, lineNumber);
 		return false;
 	}
-	if (!Utils::isValidRelativePath(lineElements[2])) {
+	if (!Utils::IsValidRelativePath(lineElements[2])) {
 		spdlog::error(
 			"Asset in AssetList has invalid path '{}' (path '{}', line {})", lineElements[2], path, lineNumber);
 		return false;
@@ -101,7 +132,7 @@ bool AssetList::ParseAssetLine(std::string_view line, const std::string& path, i
 	return true;
 }
 
-std::unordered_map<std::string, std::string>* AssetList::GetListForType(AssetType assetType)
+std::unordered_map<std::string, std::string>* AssetList::GetListForType(AssetType assetType) noexcept
 {
 	switch (assetType) {
 		case AssetType::MODEL:

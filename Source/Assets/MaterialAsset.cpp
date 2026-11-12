@@ -1,10 +1,8 @@
 #include "MaterialAsset.hpp"
 
-namespace Medae::Assets {
+using namespace Medae::Assets;
 
-AssetType MaterialAsset::getType()
+AssetType MaterialAsset::getType() noexcept
 {
 	return AssetType::MATERIAL;
 }
-
-} // namespace Medae::Assets

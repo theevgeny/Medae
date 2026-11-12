@@ -28,19 +28,19 @@ struct MeshNode
 };
 class ModelAsset : public Asset
 {
-  public:
-	AssetType getType() override;
+public:
+	AssetType getType() noexcept override;
 
 	std::vector<Mesh> meshs;
 	std::vector<MeshNode> nodes;
 
-	ModelAsset() = default;
-	ModelAsset(const std::string id);
-	void uploadToGPU(const Graphics::VulkanRender& render);
-	void dropFromCPU();
-	void dropFromGPU(const Graphics::VulkanRender& render);
-	ModelAsset(const ModelAsset&) = delete;
-	ModelAsset& operator=(const ModelAsset&) = delete;
+	ModelAsset() noexcept = default;
+	ModelAsset(const std::string id) noexcept;
+	void uploadToGPU(const Graphics::VulkanRender& render) noexcept;
+	void dropFromCPU() noexcept;
+	void dropFromGPU(const Graphics::VulkanRender& render) noexcept;
+	ModelAsset(const ModelAsset&) noexcept = delete;
+	ModelAsset& operator=(const ModelAsset&) noexcept = delete;
 	ModelAsset(ModelAsset&&) noexcept = default;
 	ModelAsset& operator=(ModelAsset&&) noexcept = default;
 };

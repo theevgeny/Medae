@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 project(Medae)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
@@ -98,10 +98,16 @@ set(DILIGENT_BUILD_FX        OFF CACHE BOOL "" FORCE)
 set(DILIGENT_BUILD_UNITY_PLUGIN OFF CACHE BOOL "" FORCE)
 set(DILIGENT_BUILD_RENDER_SCRIPT OFF CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(JoltPhysics Sodium stb DiligentCore DiligentTools DiligentFX)
+FetchContent_MakeAvailable(JoltPhysics Sodium DiligentCore DiligentTools DiligentFX)
 
-add_library(stb::stb INTERFACE IMPORTED)
-target_include_directories(stb::stb INTERFACE ${stb_SOURCE_DIR})
+FetchContent_GetProperties(stb)
+if(NOT stb_POPULATED)
+    FetchContent_Populate(stb)
+endif()
+
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE "${stb_SOURCE_DIR}")
+add_library(stb::stb ALIAS stb)
 
 find_package(Boost 1.92 REQUIRED COMPONENTS asio program_options headers filesystem)
 find_package(tomlplusplus 3.4 REQUIRED)

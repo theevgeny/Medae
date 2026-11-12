@@ -14,14 +14,14 @@
 
 using namespace Medae::Assets;
 
-ResourceManager::ResourceManager(const std::string& path, AssetList&& assetList)
+ResourceManager::ResourceManager(const std::string& path, AssetList&& assetList) noexcept
 	: m_assetList(std::move(assetList)), m_basePath(path)
 {
 }
 
-std::optional<FileHandler> ResourceManager::GetFile(const std::string& id)
+std::optional<FileHandler> ResourceManager::GetFile(const std::string& id) const noexcept
 {
-	const auto typeAndId = Utils::split(id, ':');
+	const auto typeAndId = Utils::Split(id, ':');
 	if (typeAndId.size() != 2) {
 		return std::nullopt;
 	}
@@ -46,7 +46,7 @@ std::optional<FileHandler> ResourceManager::GetFile(const std::string& id)
 	if (!ext.empty() && ext[0] == '.') {
 		ext.erase(0, 1);
 	}
-	if (!currentFileExtensionForAssetType(assetType, Utils::toLower(ext))) {
+	if (!currentFileExtensionForAssetType(assetType, Utils::ToLower(ext))) {
 		return std::nullopt;
 	}
 

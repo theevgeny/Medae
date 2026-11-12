@@ -9,12 +9,12 @@ namespace Medae::Assets {
 class FileHandler
 {
 public:
-	FileHandler(std::fstream&& file, const std::string& path);
+	FileHandler(std::fstream&& file, const std::string& path) noexcept;
 
-	std::string GetLine();
-	void ToStart();
+	std::string GetLine() noexcept;
+	void ToStart() noexcept;
 	std::size_t GetLineNumber() const noexcept;
-	const std::string& GetPath() const;
+	const std::string& GetPath() const noexcept;
 
 private:
 	std::fstream m_file;

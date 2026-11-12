@@ -1,31 +1,29 @@
 #include "ModelAsset.hpp"
 
-namespace Medae::Assets {
+using namespace Medae::Assets;
 
-AssetType ModelAsset::getType()
+AssetType ModelAsset::getType() noexcept
 {
 	return AssetType::MODEL;
 }
 
-ModelAsset::ModelAsset(const std::string id)
+ModelAsset::ModelAsset(const std::string id) noexcept
 {
 	(void)id;
 }
 
-void ModelAsset::uploadToGPU(const Graphics::VulkanRender& render)
+void ModelAsset::uploadToGPU(const Graphics::VulkanRender& render) noexcept
 {
 	(void)render;
 }
 
-void ModelAsset::dropFromCPU()
+void ModelAsset::dropFromCPU() noexcept
 {
 	meshs.clear();
 	nodes.clear();
 }
 
-void ModelAsset::dropFromGPU(const Graphics::VulkanRender& render)
+void ModelAsset::dropFromGPU(const Graphics::VulkanRender& render) noexcept
 {
 	(void)render;
 }
-
-} // namespace Medae::Assets

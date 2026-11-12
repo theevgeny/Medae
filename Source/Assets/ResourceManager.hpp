@@ -14,9 +14,9 @@ class ResourceManager
 	std::string m_basePath;
 
 public:
-	ResourceManager(const std::string& path, AssetList&& assetList);
+	ResourceManager(const std::string& path, AssetList&& assetList) noexcept;
 
-	std::optional<FileHandler> GetFile(const std::string& id);
+	std::optional<FileHandler> GetFile(const std::string& id) const noexcept;
 };
 
 } // namespace Medae::Assets

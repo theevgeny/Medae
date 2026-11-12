@@ -4,6 +4,6 @@
 
 namespace Medae::Assets {
 
-void* GetFallbackResource(AssetType type);
+void* GetFallbackResource(AssetType type) noexcept;
 
 } // namespace Medae::Assets

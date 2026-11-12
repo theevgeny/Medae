@@ -5,11 +5,13 @@
 #include <string>
 #include <utility>
 
-namespace Medae::Assets {
+using namespace Medae::Assets;
 
-FileHandler::FileHandler(std::fstream&& file, const std::string& path) : m_file(std::move(file)), m_path(path) {}
+FileHandler::FileHandler(std::fstream&& file, const std::string& path) noexcept : m_file(std::move(file)), m_path(path)
+{
+}
 
-std::string FileHandler::GetLine()
+std::string FileHandler::GetLine() noexcept
 {
 	std::string line;
 	if (std::getline(m_file, line)) {
@@ -18,7 +20,7 @@ std::string FileHandler::GetLine()
 	return line;
 }
 
-void FileHandler::ToStart()
+void FileHandler::ToStart() noexcept
 {
 	m_file.clear();
 	m_file.seekg(0, std::ios::beg);
@@ -30,9 +32,7 @@ std::size_t FileHandler::GetLineNumber() const noexcept
 	return m_lineNumber;
 }
 
-const std::string& FileHandler::GetPath() const
+const std::string& FileHandler::GetPath() const noexcept
 {
 	return m_path;
 }
-
-} // namespace Medae::Assets

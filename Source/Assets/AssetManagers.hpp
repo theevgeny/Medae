@@ -8,11 +8,9 @@
 namespace Medae::Assets {
 class AssetManagers
 {
-  public:
+public:
 	AssetManager<TextureAsset, TextureHandle> texture;
 	AssetManager<ModelAsset, ModelHandle> model;
 	AssetManager<MaterialAsset, MaterialHandle> material;
-
-	void pushResource(std::string id, Asset&& resource);
 };
 } // namespace Medae::Assets

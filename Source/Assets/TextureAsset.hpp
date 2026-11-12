@@ -17,21 +17,22 @@ namespace Medae::Assets {
 class TextureAsset : public Asset
 {
 public:
-	AssetType getType() override;
-	uint32_t getWidth();
-	uint32_t getHeight();
-	void uploadToGPU(const Graphics::VulkanRender& render);
-	void dropFromCPU();
-	void dropFromGPU(const Graphics::VulkanRender& render);
-	const std::vector<Color4>& getCPUTexture();
-	const Diligent::ITextureView* getGPUTexture();
-	uint32_t getMipLevels();
+	AssetType getType() noexcept override;
+	uint32_t getWidth() noexcept;
+	uint32_t getHeight() noexcept;
+	void uploadToGPU(const Graphics::VulkanRender& render) noexcept;
+	void dropFromCPU() noexcept;
+	void dropFromGPU(const Graphics::VulkanRender& render) noexcept;
+	const std::vector<Color4>& getCPUTexture() noexcept;
+	const Diligent::ITextureView* getGPUTexture() noexcept;
+	uint32_t getMipLevels() noexcept;
 
-	TextureAsset() = default;
-	TextureAsset(const std::string id);
-	TextureAsset(uint32_t width, uint32_t height, Color4 pixel);
-	TextureAsset(const TextureAsset&) = delete;
-	TextureAsset& operator=(const TextureAsset&) = delete;
+	TextureAsset() noexcept = default;
+	TextureAsset(const std::string id) noexcept;
+	TextureAsset(std::vector<Color4>&& pixels) noexcept;
+	TextureAsset(uint32_t width, uint32_t height, Color4 pixel) noexcept;
+	TextureAsset(const TextureAsset&) noexcept = delete;
+	TextureAsset& operator=(const TextureAsset&) noexcept = delete;
 	TextureAsset(TextureAsset&&) noexcept = default;
 	TextureAsset& operator=(TextureAsset&&) noexcept = default;
 
